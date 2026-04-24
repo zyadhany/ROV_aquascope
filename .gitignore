@@ -1,0 +1,62 @@
+# ROS2 workspace generated folders
+build/
+install/
+log/
+
+# Colcon / test output
+.colcon/
+*.log
+
+# Python cache/build files
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# C/C++ build files
+*.o
+*.so
+*.a
+*.cmake
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+
+# Gazebo / Ignition / GZ cache
+.gazebo/
+.gz/
+*.fuel/
+
+# ROS bags and recorded data
+*.bag
+*.db3
+*.mcap
+rosbag2_*/
+
+# Large/generated data
+data/
+logs/
+recordings/
+videos/
+*.mp4
+*.avi
+*.mov
+
+# Environment / secrets
+.env
+.env.*
+*.key
+*.pem
+*.crt
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

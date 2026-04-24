@@ -1,0 +1,253 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <model name="ROV">
+    <pose>0 0 -0.4 0 0 0</pose>
+
+    <!-- Main floating box -->
+    <link name="base_link">
+      <inertial>
+        <pose>0 0 -0.07 0 0 0</pose>
+        <mass>7.475</mass> <!-- neutral for volume 0.007875 m^3 in water -->
+          <inertia>
+          <ixx>0.02953125</ixx>
+          <iyy>0.09515625</iyy>
+          <izz>0.09515625</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <collision name="base_collision">
+        <geometry>
+          <box>
+            <size>0.35 0.15 0.15</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="base_visual">
+        <geometry>
+          <box>
+            <size>0.35 0.15 0.15</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.9 0.15 0.15 1</ambient>
+          <diffuse>0.9 0.15 0.15 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <plugin
+      filename="gz-sim-hydrodynamics-system"
+      name="gz::sim::systems::Hydrodynamics">
+      <link_name>base_link</link_name>
+      <water_density>1000</water_density>
+
+      <!-- Linear damping -->
+      <xU>-6</xU>
+      <yV>-12</yV>
+      <zW>-14</zW>
+      <kP>-0.4</kP>
+      <mQ>-0.8</mQ>
+      <nR>-0.8</nR>
+
+      <!-- Quadratic damping -->
+      <xUabsU>-12</xUabsU>
+      <yVabsV>-20</yVabsV>
+      <zWabsW>-24</zWabsW>
+      <kPabsP>-0.02</kPabsP>
+      <mQabsQ>-0.2</mQabsQ>
+      <nRabsR>-0.2</nRabsR>
+    </plugin>
+
+    <link name="left_thrusters">
+      <pose relative_to="base_link">0 0.105 0 0 1.57079632679 0</pose>
+      <inertial>
+        <mass>0.01</mass>
+        <inertia>
+          <ixx>1e-6</ixx>
+          <iyy>1e-6</iyy>
+          <izz>1e-6</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <visual name="visual">
+        <geometry>
+          <cylinder>
+            <radius>0.03</radius>
+            <length>0.02</length>
+          </cylinder>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name="left_thruster_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>left_thrusters</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-1e16</lower>
+          <upper>1e16</upper>
+        </limit>
+      </axis>
+    </joint>
+
+    <link name="right_thrusters">
+      <pose relative_to="base_link">0 -0.105 0 0 1.57079632679 0</pose>
+      <inertial>
+        <mass>0.01</mass>
+        <inertia>
+          <ixx>1e-6</ixx>
+          <iyy>1e-6</iyy>
+          <izz>1e-6</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <visual name="visual">
+        <geometry>
+          <cylinder>
+            <radius>0.03</radius>
+            <length>0.02</length>
+          </cylinder>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name="right_thruster_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>right_thrusters</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-1e16</lower>
+          <upper>1e16</upper>
+        </limit>
+      </axis>
+    </joint>
+
+    <plugin filename="gz-sim-thruster-system"
+            name="gz::sim::systems::Thruster">
+      <namespace>rov</namespace>
+      <joint_name>left_thruster_joint</joint_name>
+      <thrust_coefficient>0.004422</thrust_coefficient>
+      <fluid_density>1000</fluid_density>
+      <propeller_diameter>0.1</propeller_diameter>
+      <velocity_control>false</velocity_control>
+      <max_thrust_cmd>30</max_thrust_cmd>
+      <min_thrust_cmd>-30</min_thrust_cmd>
+    </plugin>
+
+    <plugin filename="gz-sim-thruster-system"
+            name="gz::sim::systems::Thruster">
+      <namespace>rov</namespace>
+      <joint_name>right_thruster_joint</joint_name>
+      <thrust_coefficient>0.004422</thrust_coefficient>
+      <fluid_density>1000</fluid_density>
+      <propeller_diameter>0.1</propeller_diameter>
+      <velocity_control>false</velocity_control>
+      <max_thrust_cmd>30</max_thrust_cmd>
+      <min_thrust_cmd>-30</min_thrust_cmd>
+    </plugin>
+
+    <plugin filename="BallastTankPlugin"
+          name="my_plugins::BallastTankPlugin">
+      <link_name>base_link</link_name>
+      <topic>/rov/ballast_cmd</topic>
+      <max_weight>0.8</max_weight>
+      <initial_weight>0.0</initial_weight>
+      <fill_rate>0.06</fill_rate>
+    </plugin>
+
+    <plugin filename="libPressureSensorPlugin.so"
+      name="my_plugins::PressureSensorPlugin">
+      <parent_link_name>base_link</parent_link_name>
+
+      <!-- Sensor port location on hull, relative to base_link -->
+      <port_offset>0 0 -0.06</port_offset>
+
+      <!-- Only matters if dynamic_pressure_coeff > 0 -->
+      <port_axis_local>1 0 0</port_axis_local>
+
+      <water_surface_z>0.0</water_surface_z>
+      <atmospheric_pressure_pa>101325.0</atmospheric_pressure_pa>
+      <water_density_kgpm3>997.0</water_density_kgpm3>
+      <gravity_mps2>9.81</gravity_mps2>
+
+      <update_rate_hz>30.0</update_rate_hz>
+
+      <!-- realism -->
+      <bias_pa>0.0</bias_pa>
+      <noise_stddev_pa>120.0</noise_stddev_pa>
+      <drift_stddev_pa_per_sqrt_s>3.0</drift_stddev_pa_per_sqrt_s>
+      <tau_seconds>0.08</tau_seconds>
+      <quantization_pa>10.0</quantization_pa>
+
+      <!-- keep 0 for normal depth sensor -->
+      <dynamic_pressure_coeff>0.0</dynamic_pressure_coeff>
+
+      <clamp_above_surface>true</clamp_above_surface>
+
+      <pressure_topic>/rov/pressure</pressure_topic>
+      <depth_topic>/rov/depth/current</depth_topic>
+    </plugin>    
+
+    <link name="camera_link">
+      <pose relative_to="base_link">0.18 0 0.05 0 0 0</pose>
+
+      <inertial>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>0.00001</ixx>
+          <iyy>0.00001</iyy>
+          <izz>0.00001</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <visual name="camera_visual">
+        <geometry>
+          <box>
+            <size>0.03 0.03 0.03</size>
+          </box>
+        </geometry>
+      </visual>
+
+      <sensor name="front_camera" type="camera">
+        <always_on>true</always_on>
+        <update_rate>30</update_rate>
+        <visualize>true</visualize>
+        <topic>/rov/camera/image</topic>
+        <camera>
+          <horizontal_fov>1.5708</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.05</near>
+            <far>50.0</far>
+          </clip>
+        </camera>
+      </sensor>
+    </link>
+
+    <joint name="camera_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>camera_link</child>
+    </joint>
+
+  </model>
+</sdf>
+

@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <world name="pool_world">
+
+    <gravity>0 0 -9.8</gravity>
+
+    <plugin filename="gz-sim-physics-system"
+            name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-scene-broadcaster-system"
+            name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-user-commands-system"
+            name="gz::sim::systems::UserCommands"/>
+
+    <plugin filename="gz-sim-buoyancy-system"
+            name="gz::sim::systems::Buoyancy">
+      <graded_buoyancy>
+        <default_density>1000</default_density>
+        <density_change>
+          <above_depth>0</above_depth>
+          <density>1</density>
+        </density_change>
+      </graded_buoyancy>
+      <enable>ROV</enable>
+    </plugin>
+
+    <plugin filename="gz-sim-sensors-system"
+            name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <plugin filename="gz-sim-scene-broadcaster-system"
+            name="gz::sim::systems::SceneBroadcaster"/>
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 20 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.4 0.2 -1</direction>
+    </light>
+
+    <include>
+      <uri>model://home/zyadhany/ros2_ws/src/my_robot_sim/models/bool</uri>
+    </include>
+
+    <include>
+      <uri>model://home/zyadhany/ros2_ws/src/my_robot_sim/models/rov</uri>
+    </include>
+
+  </world>
+</sdf>
