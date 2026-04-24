@@ -1,0 +1,1 @@
+gz sim src/my_robot_sim/worlds/empty.world
