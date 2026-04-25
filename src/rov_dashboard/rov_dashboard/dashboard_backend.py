@@ -32,7 +32,8 @@ def create_app() -> Any:
 
     from .api.block_routes import router as block_router
     from .api.flowchart_routes import router as flowchart_router
-    from .api.runtime import ros_interface
+    from .api.node_routes import router as node_router
+    from .api.runtime import node_manager, ros_interface
     from .api.service_routes import router as service_router
 
     package_paths = get_package_paths()
@@ -40,9 +41,11 @@ def create_app() -> Any:
     app.include_router(flowchart_router)
     app.include_router(block_router)
     app.include_router(service_router)
+    app.include_router(node_router)
 
     @app.on_event('shutdown')
     def shutdown_ros_interface() -> None:
+        node_manager.shutdown()
         ros_interface.shutdown()
 
     if package_paths.web_directory.exists():

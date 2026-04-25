@@ -2,6 +2,8 @@
   "services": [
     {
       "id": "depth_hold",
+      "node_name": "/hold_depth",
+      "aliases": ["depth_hold_node"],
       "name": "Depth Hold",
       "description": "Maintains target depth using pressure sensor input and ballast commands.",
       "type": "ros_node",
@@ -15,6 +17,8 @@
     },
     {
       "id": "keyboard_control",
+      "node_name": "/keyboard_control",
+      "aliases": ["keyboard_control_node"],
       "name": "Keyboard Control",
       "description": "Operator keyboard control process for manual ROV motion.",
       "type": "operator_tool",
@@ -28,6 +32,8 @@
     },
     {
       "id": "mobile_api",
+      "node_name": "/mobile_api",
+      "aliases": ["mobile_api_node"],
       "name": "Mobile API",
       "description": "Optional mobile client API bridge for remote status viewing.",
       "type": "api",
@@ -41,6 +47,8 @@
     },
     {
       "id": "camera_stream",
+      "node_name": "/camera_stream",
+      "aliases": ["camera_stream_node"],
       "name": "Camera Stream",
       "description": "Camera stream relay placeholder for future image transport.",
       "type": "media",

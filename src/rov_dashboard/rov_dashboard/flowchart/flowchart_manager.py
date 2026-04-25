@@ -82,6 +82,7 @@ class FlowchartManager:
 
     def get_flowchart(self) -> dict[str, Any]:
         blocks_config = load_blocks_config()
+        print('Loaded blocks config:')
         block_items = [
             raw_block
             for raw_block in blocks_config.get('blocks', [])

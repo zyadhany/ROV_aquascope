@@ -6,7 +6,6 @@
       "type": "sensor",
       "category": "Sensors",
       "description": "Reads water pressure and publishes the calculated current depth.",
-      "enabled": true,
       "status_source": {
         "source_type": "topic",
         "topic": "/hardware/sensors/water_pressure/status",
@@ -30,7 +29,6 @@
       "type": "pump",
       "category": "Actuators",
       "description": "Pump controlled by the microcontroller. Used to fill or empty the ballast tank.",
-      "enabled": true,
       "status_source": {
         "source_type": "topic",
         "topic": "/hardware/water_pump/status",
@@ -79,7 +77,6 @@
       "type": "topic",
       "category": "Topics",
       "description": "Current measured ROV depth published by the water pressure sensor.",
-      "enabled": true,
       "ros_topic": "/rov/depth/current",
       "message_type": "std_msgs/Float64",
       "show": {
@@ -95,7 +92,6 @@
       "type": "topic",
       "category": "Topics",
       "description": "Target depth published by the keyboard control node.",
-      "enabled": true,
       "ros_topic": "/rov/depth/target",
       "message_type": "std_msgs/Float64",
       "show": {
@@ -111,7 +107,6 @@
       "type": "topic",
       "category": "Topics",
       "description": "Depth error calculated by the hold depth node.",
-      "enabled": true,
       "ros_topic": "/rov/depth/error",
       "message_type": "std_msgs/Float64",
       "show": {
@@ -127,7 +122,6 @@
       "type": "topic",
       "category": "Topics",
       "description": "Control signal published by hold depth node and consumed by the microcontroller.",
-      "enabled": true,
       "ros_topic": "/rov/depth/control_signal",
       "message_type": "std_msgs/Int32",
       "show": {
@@ -143,7 +137,6 @@
       "type": "node",
       "category": "Nodes",
       "description": "Keyboard control node that publishes the target depth.",
-      "enabled": true,
       "ros_node": "/keyboard_control",
       "logs": {
         "source": "/nodes/keyboard_control",
@@ -157,7 +150,6 @@
       "type": "node",
       "category": "Nodes",
       "description": "Subscribes to current depth and target depth, calculates depth error, and publishes pump control signal.",
-      "enabled": true,
       "ros_node": "/hold_depth",
       "logs": {
         "source": "/nodes/hold_depth",
@@ -171,7 +163,6 @@
       "type": "node",
       "category": "Nodes",
       "description": "Subscribes to the control signal and controls the water pump hardware.",
-      "enabled": true,
       "ros_node": "/micro_controller",
       "logs": {
         "source": "/nodes/micro_controller",
