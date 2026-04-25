@@ -115,6 +115,14 @@ function renderCommandResponse(response) {
   `;
 }
 
+function renderCommandResponseSlot(response) {
+  return `
+    <div data-command-response>
+      ${renderCommandResponse(response)}
+    </div>
+  `;
+}
+
 function renderEndpointList(items) {
   if (!Array.isArray(items) || items.length === 0) {
     return '<div class="subtle-text">None detected.</div>';
@@ -134,58 +142,104 @@ function renderTopicLatestMessage(topicData) {
   `;
 }
 
-function renderTopicLiveData(snapshot) {
+function getTopicLiveValues(snapshot) {
   const topicData = snapshot.selectedTopicData || snapshot.selectedState?.data || {};
-  const publishers = Array.isArray(topicData.publishers) ? topicData.publishers : [];
-  const subscribers = Array.isArray(topicData.subscribers) ? topicData.subscribers : [];
+  const publishers = Array.isArray(topicData.publishers)
+    ? topicData.publishers
+        .map((publisher) => publisher.node_name)
+        .filter(Boolean)
+    : [];
+
+  const subscribers = Array.isArray(topicData.subscribers)
+    ? topicData.subscribers
+        .map((subscriber) => subscriber.node_name)
+        .filter(Boolean)
+    : [];
   const status = topicData.status || snapshot.selectedState?.status || snapshot.topicDataStatus;
   const frequency = Number(topicData.frequency_hz || 0).toFixed(2);
   const age = topicData.message_age_seconds;
-  const rows = [
-    // ['ROS Topic', topicData.ros_topic || snapshot.selectedBlock?.ros_topic || ''],
-    // ['Message Type', topicData.message_type || snapshot.selectedBlock?.message_type || ''],
-    ['Status', status],
-    ['Publishers', String(publishers.length)],
-    ['Subscribers', String(subscribers.length)],
-    ['Frequency Hz', frequency],
-    ['Last Received', topicData.last_received_at || 'No message received yet'],
-    ['Data Age', age === null || age === undefined ? 'unknown' : `${age}s`],
-    ['Stale', topicData.is_stale ? 'true' : 'false'],
-  ];
 
-  if (snapshot.topicDataError) {
-    rows.push(['Error', snapshot.topicDataError]);
-  }
+  return {
+    latestMessageHtml: renderTopicLatestMessage(topicData),
+    status,
+    publishersCount: String(publishers.length),
+    subscribersCount: String(subscribers.length),
+    frequency,
+    lastReceived: topicData.last_received_at || 'No message received yet',
+    dataAge: age === null || age === undefined ? 'unknown' : `${age}s`,
+    stale: topicData.is_stale ? 'true' : 'false',
+    error: snapshot.topicDataError || '',
+    publishersHtml: renderEndpointList(publishers),
+    subscribersHtml: renderEndpointList(subscribers),
+  };
+}
+
+function renderTopicValueRow(label, field) {
+  return `
+    <div class="detail-row">
+      <span>${escapeHtml(label)}</span>
+      <strong data-topic-field="${escapeHtml(field)}"></strong>
+    </div>
+  `;
+}
+
+function renderTopicLiveData(snapshot) {
+  const values = getTopicLiveValues(snapshot);
 
   return `
     <section class="detail-section">
       <h3>Latest Message</h3>
-      ${renderTopicLatestMessage(topicData)}
+      <div data-topic-field="latestMessageHtml">
+        ${values.latestMessageHtml}
+      </div>
     </section>
-    
+
     <section class="detail-section">
       <h3>Live Topic</h3>
       <div class="detail-rows topic-live-rows">
-        ${renderRows(rows)}
+        ${renderTopicValueRow('Status', 'status')}
+        ${renderTopicValueRow('Publishers', 'publishersCount')}
+        ${renderTopicValueRow('Subscribers', 'subscribersCount')}
+        ${renderTopicValueRow('Frequency Hz', 'frequency')}
+        ${renderTopicValueRow('Last Received', 'lastReceived')}
+        ${renderTopicValueRow('Data Age', 'dataAge')}
+        ${renderTopicValueRow('Error', 'error')}
       </div>
     </section>
 
     <section class="detail-section">
       <h3>Publishers</h3>
-      ${renderEndpointList(publishers)}
+      <div data-topic-field="publishersHtml">
+        ${values.publishersHtml}
+      </div>
     </section>
 
     <section class="detail-section">
       <h3>Subscribers</h3>
-      ${renderEndpointList(subscribers)}
+      <div data-topic-field="subscribersHtml">
+        ${values.subscribersHtml}
+      </div>
     </section>
 
   `;
 }
 
+function renderStateData(snapshot) {
+  return `
+    <section class="detail-section">
+      <h3>Data</h3>
+      <pre class="data-box" data-state-field="dataJson">${prettyJson(snapshot.selectedState?.data || {})}</pre>
+    </section>
+  `;
+}
+
+function renderDataSection(snapshot) {
+  return isTopicBlock(snapshot.selectedBlock)
+    ? renderTopicLiveData(snapshot)
+    : renderStateData(snapshot);
+}
+
 function renderTopicPublishForm(snapshot) {
-  const response = snapshot.topicPublishResponse;
-  const tone = response?.success ? 'success' : 'error';
   const messageType = (
     snapshot.topicPublishDraft.messageType || snapshot.selectedBlock?.message_type || ''
   );
@@ -247,11 +301,34 @@ function renderTopicPublishForm(snapshot) {
         </label>
         <button type="submit">Publish</button>
       </form>
-      ${response ? `
-        <div class="response-box" data-tone="${tone}">
-          ${escapeHtml(response.message || 'Publish response received.')}
-        </div>
-      ` : ''}
+      <div data-topic-publish-response>
+        ${renderTopicPublishResponse(snapshot.topicPublishResponse)}
+      </div>
+    </section>
+  `;
+}
+
+function renderTopicPublishResponse(response) {
+  if (!response) {
+    return '';
+  }
+
+  const tone = response.success ? 'success' : 'error';
+  return `
+    <div class="response-box" data-tone="${tone}">
+      ${escapeHtml(response.message || 'Publish response received.')}
+    </div>
+  `;
+}
+
+function renderControlsSection(controls, response) {
+  return `
+    <section class="detail-section">
+      <h3>Controls</h3>
+      <div class="commands-grid">
+        ${renderControls(controls)}
+      </div>
+      ${renderCommandResponseSlot(response)}
     </section>
   `;
 }
@@ -294,8 +371,100 @@ function restoreFocusedField(focusedField) {
   }
 }
 
+function setElementHtml(element, html) {
+  if (!element || element.innerHTML === html) {
+    return;
+  }
+
+  element.innerHTML = html;
+}
+
+function setElementText(element, value) {
+  if (!element) {
+    return;
+  }
+
+  const nextValue = String(value ?? '');
+  if (element.textContent === nextValue) {
+    return;
+  }
+
+  element.textContent = nextValue;
+}
+
+function getTopicStatus(snapshot) {
+  return snapshot.selectedTopicData?.status || snapshot.selectedState?.status || 'loading';
+}
+
+function getControlsSignature(controls) {
+  return controls.map((control, index) => [
+    index,
+    control.name || '',
+    control.label || '',
+    control.type || '',
+    control.min ?? '',
+    control.max ?? '',
+    control.step ?? '',
+  ].join(':')).join('|');
+}
+
+function getRenderKey(snapshot, controls) {
+  return [
+    snapshot.selectedBlock?.id || '',
+    snapshot.selectedBlock?.type || '',
+    isTopicBlock(snapshot.selectedBlock) ? 'topic' : 'generic',
+    snapshot.topicPublishDraft.advanced ? 'advanced' : 'simple',
+    getControlsSignature(controls),
+  ].join('::');
+}
+
+function updateBlockDetails(container, snapshot) {
+  const statusElement = container.querySelector('[data-detail-status]');
+  if (statusElement) {
+    statusElement.textContent = getTopicStatus(snapshot);
+  }
+
+  if (isTopicBlock(snapshot.selectedBlock)) {
+    const values = getTopicLiveValues(snapshot);
+    Object.entries(values).forEach(([field, value]) => {
+      const element = container.querySelector(`[data-topic-field="${field}"]`);
+      if (!element) {
+        return;
+      }
+
+      if (field.endsWith('Html')) {
+        setElementHtml(element, value);
+        return;
+      }
+
+      setElementText(element, value);
+    });
+
+    setElementHtml(
+      container.querySelector('[data-topic-publish-response]'),
+      renderTopicPublishResponse(snapshot.topicPublishResponse),
+    );
+  } else {
+    setElementText(
+      container.querySelector('[data-state-field="dataJson"]'),
+      prettyJson(snapshot.selectedState?.data || {}),
+    );
+
+    setElementHtml(
+      container.querySelector('[data-command-response]'),
+      renderCommandResponse(snapshot.commandResponse),
+    );
+  }
+
+  setElementHtml(
+    container.querySelector('[data-detail-media]'),
+    renderMedia(snapshot.selectedBlock, snapshot.selectedState),
+  );
+}
+
 export function renderEmptyDetails(container, message = 'No block selected.') {
   container.className = 'empty-state';
+  delete container.dataset.renderKey;
   container.innerHTML = escapeHtml(message);
 }
 
@@ -306,44 +475,41 @@ export function renderBlockDetails(container, snapshot) {
   }
 
   const controls = snapshot.selectedState?.controls || snapshot.selectedBlock.commands || [];
-  const status = (
-    snapshot.selectedTopicData?.status || snapshot.selectedState?.status || 'loading'
-  );
+  const status = getTopicStatus(snapshot);
   const topicBlock = isTopicBlock(snapshot.selectedBlock);
+  const renderKey = getRenderKey(snapshot, controls);
+
+  if (container.dataset.renderKey === renderKey) {
+    updateBlockDetails(container, snapshot);
+    return;
+  }
+
   const focusedField = captureFocusedField(container);
 
   container.className = 'details-card';
+  container.dataset.renderKey = renderKey;
   container.innerHTML = `
     <div class="details-header">
       <div>
         <span class="type-chip">${escapeHtml(formatType(snapshot.selectedBlock.type))}</span>
         <h2>${escapeHtml(snapshot.selectedBlock.name)}</h2>
       </div>
-      <span class="status-pill">${escapeHtml(status)}</span>
+      <span class="status-pill" data-detail-status>${escapeHtml(status)}</span>
     </div>
 
     <div class="detail-rows">
       ${renderRows(detailRows(snapshot.selectedBlock))}
     </div>
 
-    ${topicBlock ? renderTopicLiveData(snapshot) : `
-      <section class="detail-section">
-        <h3>Data</h3>
-        <pre class="data-box">${prettyJson(snapshot.selectedState?.data || {})}</pre>
-      </section>
-    `}
+    <div data-detail-data>
+      ${renderDataSection(snapshot)}
+    </div>
 
-    ${renderMedia(snapshot.selectedBlock, snapshot.selectedState)}
+    <div data-detail-media>
+      ${renderMedia(snapshot.selectedBlock, snapshot.selectedState)}
+    </div>
 
-    ${topicBlock ? renderTopicPublishForm(snapshot) : `
-      <section class="detail-section">
-        <h3>Controls</h3>
-        <div class="commands-grid">
-          ${renderControls(controls)}
-        </div>
-        ${renderCommandResponse(snapshot.commandResponse)}
-      </section>
-    `}
+    ${topicBlock ? renderTopicPublishForm(snapshot) : renderControlsSection(controls, snapshot.commandResponse)}
   `;
   restoreFocusedField(focusedField);
 }

@@ -17,6 +17,13 @@ def _bad_request(error: ValueError) -> HTTPException:
     return HTTPException(status_code=400, detail=str(error))
 
 
+@router.get('/blocks/ids')
+def list_block_ids() -> dict[str, Any]:
+    return {
+        'block_ids': manager.list_block_ids(),
+    }
+
+
 @router.get('/block/{block_id:path}/state')
 def get_block_state(block_id: str) -> dict[str, Any]:
     try:

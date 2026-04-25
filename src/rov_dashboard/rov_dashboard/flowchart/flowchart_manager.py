@@ -103,6 +103,9 @@ class FlowchartManager:
     def get_block(self, block_id: str) -> dict[str, Any]:
         return self._get_block_or_raise(block_id).to_dict()
 
+    def list_block_ids(self) -> list[str]:
+        return [block.id for block in self._get_blocks() if block.id]
+
     def get_block_state(self, block_id: str) -> dict[str, Any]:
         block = self._get_block_or_raise(block_id)
 

@@ -2,7 +2,7 @@
   "blocks": [
     {
       "id": "/hardware/sensors/water_pressure",
-      "name": "Water Pressure Sensor",
+      "name": "Water Pressure",
       "type": "sensor",
       "category": "Sensors",
       "description": "Reads water pressure and publishes the calculated current depth.",
