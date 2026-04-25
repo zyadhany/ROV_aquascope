@@ -62,7 +62,7 @@ class DepthHoldNode(Node):
         self.create_subscription(Float64, "/rov/depth/target", self.target_callback, 10)
 
         self.cmd_pub = self.create_publisher(Int32, "/rov/ballast_cmd", 10)
-        self.error_pub = self.create_publisher(Float64, "/rov/depth_error", 10)
+        self.error_pub = self.create_publisher(Float64, "/rov/depth/error", 10)
 
         self.timer = self.create_timer(1.0 / control_rate_hz, self.control_loop)
 

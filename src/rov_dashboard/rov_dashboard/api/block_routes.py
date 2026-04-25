@@ -71,7 +71,7 @@ def publish_topic(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail='Missing message_type.')
     if 'value' not in payload:
         raise HTTPException(status_code=400, detail='Missing value.')
-
+    
     try:
         return manager.ros_interface.publish_command(
             topic,
