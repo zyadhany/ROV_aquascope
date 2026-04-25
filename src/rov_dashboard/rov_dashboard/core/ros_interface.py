@@ -487,7 +487,7 @@ class RosInterface:
             return
 
         if hasattr(msg, 'data'):
-            msg.data = value
+            self._set_message_field(msg, 'data', value)
             return
 
         raise ValueError(
@@ -497,18 +497,70 @@ class RosInterface:
 
     def _set_message_fields(self, msg: Any, values: dict[str, Any]) -> None:
         for field_name, field_value in values.items():
-            if not hasattr(msg, field_name):
-                raise ValueError(f'Unknown message field: {field_name}')
+            self._set_message_field(msg, field_name, field_value)
 
-            current_value = getattr(msg, field_name)
-            if (
-                isinstance(field_value, dict)
-                and hasattr(current_value, 'get_fields_and_field_types')
-            ):
-                self._set_message_fields(current_value, field_value)
-                continue
+    def _set_message_field(self, msg: Any, field_name: str, field_value: Any) -> None:
+        if not hasattr(msg, field_name):
+            raise ValueError(f'Unknown message field: {field_name}')
 
-            setattr(msg, field_name, field_value)
+        current_value = getattr(msg, field_name)
+        if (
+            isinstance(field_value, dict)
+            and hasattr(current_value, 'get_fields_and_field_types')
+        ):
+            self._set_message_fields(current_value, field_value)
+            return
+
+        field_types = {}
+        if hasattr(msg, 'get_fields_and_field_types'):
+            field_types = msg.get_fields_and_field_types()
+
+        field_type = field_types.get(field_name, '')
+        coerced_value = self._coerce_value_for_field(field_type, field_value)
+        setattr(msg, field_name, coerced_value)
+
+    def _coerce_value_for_field(self, field_type: str, value: Any) -> Any:
+        if not field_type:
+            return value
+
+        if field_type in {'float', 'double'}:
+            return float(value)
+
+        if field_type in {
+            'int8',
+            'int16',
+            'int32',
+            'int64',
+            'uint8',
+            'uint16',
+            'uint32',
+            'uint64',
+        }:
+            integer_value = int(value)
+            if float(value) != integer_value:
+                raise ValueError(
+                    f'Value {value!r} is not a valid integer for ROS field {field_type}.',
+                )
+            if field_type.startswith('u') and integer_value < 0:
+                raise ValueError(
+                    f'Value {value!r} must be non-negative for ROS field {field_type}.',
+                )
+            return integer_value
+
+        if field_type == 'boolean':
+            if isinstance(value, str):
+                normalized = value.strip().lower()
+                if normalized in {'true', '1', 'yes', 'on'}:
+                    return True
+                if normalized in {'false', '0', 'no', 'off'}:
+                    return False
+                raise ValueError(f'Value {value!r} is not a valid boolean.')
+            return bool(value)
+
+        if field_type in {'string', 'wstring'}:
+            return str(value)
+
+        return value
 
     def publish_command(
         self,

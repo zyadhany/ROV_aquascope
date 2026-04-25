@@ -5,8 +5,9 @@ import threading
 import time
 
 from geometry_msgs.msg import Twist
+import pytest
 from rov_dashboard.core.ros_interface import RosInterface
-from std_msgs.msg import Float64
+from std_msgs.msg import Bool, Float64, Int32
 
 
 class FakeTopicEndpoint:
@@ -63,6 +64,33 @@ def test_set_msg_value_supports_std_msgs_data_field() -> None:
     interface._set_msg_value(message, 2.5)
 
     assert message.data == 2.5
+
+
+def test_set_msg_value_coerces_integer_input_to_float_field() -> None:
+    interface = object.__new__(RosInterface)
+    message = Float64()
+
+    interface._set_msg_value(message, 1)
+
+    assert message.data == 1.0
+    assert isinstance(message.data, float)
+
+
+def test_set_msg_value_rejects_non_integer_for_integer_field() -> None:
+    interface = object.__new__(RosInterface)
+    message = Int32()
+
+    with pytest.raises(ValueError):
+        interface._set_msg_value(message, 1.5)
+
+
+def test_set_msg_value_coerces_string_to_boolean_field() -> None:
+    interface = object.__new__(RosInterface)
+    message = Bool()
+
+    interface._set_msg_value(message, 'true')
+
+    assert message.data is True
 
 
 def test_set_msg_value_supports_nested_message_dicts() -> None:
