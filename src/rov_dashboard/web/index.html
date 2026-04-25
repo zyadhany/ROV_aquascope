@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ROV Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/cytoscape@3.30.4/dist/cytoscape.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="title-block">
+        <span class="eyebrow">Control Center</span>
+        <h1 id="projectName">ROV Dashboard</h1>
+      </div>
+
+      <div class="toolbar">
+        <label class="toggle-control" for="editModeToggle">
+          <input id="editModeToggle" type="checkbox">
+          <span>Edit</span>
+        </label>
+        <button id="saveLayoutButton" type="button">Save Layout</button>
+        <button id="reloadButton" type="button">Reload</button>
+      </div>
+    </header>
+
+    <main class="dashboard-grid">
+      <section class="graph-panel" aria-label="ROV flowchart">
+        <div id="cy" class="graph-canvas"></div>
+      </section>
+
+      <aside class="side-panel">
+        <div class="panel-tabs" role="tablist" aria-label="Dashboard panels">
+          <button id="blockTab" class="tab-button active" type="button" data-panel="block">Block</button>
+          <button id="servicesTab" class="tab-button" type="button" data-panel="services">Services</button>
+        </div>
+
+        <section id="blockPanel" class="panel-view active" aria-labelledby="blockTab">
+          <div id="selectionDetails" class="empty-state">No block selected.</div>
+        </section>
+
+        <section id="servicesPanel" class="panel-view" aria-labelledby="servicesTab">
+          <div id="servicesList" class="services-list"></div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="status-bar">
+      <span>Blocks: <strong id="blockCount">0</strong></span>
+      <span>Connections: <strong id="connectionCount">0</strong></span>
+      <span>Selected: <strong id="selectedBlockLabel">None</strong></span>
+      <span>Status: <strong id="saveStatus">Loading</strong></span>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

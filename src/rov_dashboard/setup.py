@@ -1,3 +1,6 @@
+from glob import glob
+import os
+
 from setuptools import find_packages, setup
 
 package_name = 'rov_dashboard'
@@ -10,13 +13,15 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'config'), glob('config/*.json')),
+        (os.path.join('share', package_name, 'web'), glob('web/*')),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'fastapi', 'uvicorn'],
     zip_safe=True,
     maintainer='zyadhany',
     maintainer_email='zeyad.hany2003@gmail.com',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    description='Flowchart dashboard MVP for an ROV',
+    license='Apache-2.0',
     extras_require={
         'test': [
             'pytest',
@@ -24,6 +29,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'dashboard_backend = rov_dashboard.dashboard_backend:main',
         ],
     },
 )

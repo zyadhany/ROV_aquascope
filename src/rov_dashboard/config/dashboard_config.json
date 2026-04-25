@@ -1,0 +1,33 @@
+{
+  "project_name": "ROV Dashboard",
+  "refresh_rate_ms": 1000,
+  "edit_mode_enabled": true,
+  "allow_drag": true,
+  "allow_save_layout": true,
+  "show_connection_labels": true,
+  "theme": {
+    "background": "#0f172a",
+    "panel_background": "#111827",
+    "text": "#f8fafc",
+    "muted_text": "#94a3b8"
+  },
+  "colors": {
+    "thruster": "#ef4444",
+    "pump": "#f97316",
+    "light": "#facc15",
+    "camera": "#8b5cf6",
+    "sensor": "#06b6d4",
+    "topic": "#22c55e",
+    "node": "#3b82f6",
+    "service": "#a855f7",
+    "interface": "#ec4899",
+    "software": "#f97316",
+    "subsystem": "#64748b"
+  },
+  "font_sizes": {
+    "block_title": 14,
+    "block_type": 11,
+    "panel_title": 18,
+    "normal_text": 14
+  }
+}

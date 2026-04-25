@@ -1,0 +1,69 @@
+{
+  "services": [
+    {
+      "id": "depth_hold",
+      "name": "Depth Hold",
+      "description": "Maintains target depth using pressure sensor input and ballast commands.",
+      "type": "ros_node",
+      "status": "stopped",
+      "start_command": "ros2 run rov_control depth_hold",
+      "stop_method": "managed_shutdown",
+      "logs": {
+        "source": "/nodes/depth_hold",
+        "max_lines": 100
+      }
+    },
+    {
+      "id": "keyboard_control",
+      "name": "Keyboard Control",
+      "description": "Operator keyboard control process for manual ROV motion.",
+      "type": "operator_tool",
+      "status": "stopped",
+      "start_command": "ros2 run rov_control keyboard_control",
+      "stop_method": "managed_shutdown",
+      "logs": {
+        "source": "keyboard_control",
+        "max_lines": 100
+      }
+    },
+    {
+      "id": "mobile_api",
+      "name": "Mobile API",
+      "description": "Optional mobile client API bridge for remote status viewing.",
+      "type": "api",
+      "status": "stopped",
+      "start_command": "ros2 run rov_dashboard mobile_api",
+      "stop_method": "managed_shutdown",
+      "logs": {
+        "source": "mobile_api",
+        "max_lines": 100
+      }
+    },
+    {
+      "id": "camera_stream",
+      "name": "Camera Stream",
+      "description": "Camera stream relay placeholder for future image transport.",
+      "type": "media",
+      "status": "stopped",
+      "start_command": "ros2 run rov_camera camera_stream",
+      "stop_method": "managed_shutdown",
+      "logs": {
+        "source": "/hardware/cameras/front",
+        "max_lines": 100
+      }
+    },
+    {
+      "id": "dashboard_backend",
+      "name": "Dashboard Backend",
+      "description": "FastAPI backend serving the web dashboard and placeholder APIs.",
+      "type": "web_backend",
+      "status": "running",
+      "start_command": "ros2 run rov_dashboard dashboard_backend",
+      "stop_method": "manual",
+      "logs": {
+        "source": "dashboard_backend",
+        "max_lines": 100
+      }
+    }
+  ]
+}

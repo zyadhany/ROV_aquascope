@@ -1,0 +1,225 @@
+{
+  "blocks": [
+    {
+      "id": "/hardware/sensors/water_pressure",
+      "name": "Water Pressure Sensor",
+      "type": "sensor",
+      "category": "Sensors",
+      "description": "Reads water pressure and publishes the calculated current depth.",
+      "enabled": true,
+      "status_source": {
+        "source_type": "topic",
+        "topic": "/hardware/sensors/water_pressure/status",
+        "message_type": "std_msgs/String",
+        "field": "data"
+      },
+      "data_sources": [
+        {
+          "name": "Current Depth",
+          "source_type": "topic",
+          "topic": "/rov/depth/current",
+          "message_type": "std_msgs/Float64",
+          "field": "data",
+          "unit": "m"
+        }
+      ]
+    },
+    {
+      "id": "/hardware/water_pump",
+      "name": "Water Pump",
+      "type": "pump",
+      "category": "Actuators",
+      "description": "Pump controlled by the microcontroller. Used to fill or empty the ballast tank.",
+      "enabled": true,
+      "status_source": {
+        "source_type": "topic",
+        "topic": "/hardware/water_pump/status",
+        "message_type": "std_msgs/Int32",
+        "field": "data"
+      },
+      "data_sources": [
+        {
+          "name": "Pump Mode",
+          "source_type": "topic",
+          "topic": "/hardware/water_pump/status",
+          "message_type": "std_msgs/Int32",
+          "field": "data"
+        }
+      ],
+      "commands": [
+        {
+          "name": "stop",
+          "label": "Stop",
+          "type": "button",
+          "target_topic": "/rov/depth/control_signal",
+          "message_type": "std_msgs/Int32",
+          "value": 0
+        },
+        {
+          "name": "fill",
+          "label": "Fill",
+          "type": "button",
+          "target_topic": "/rov/depth/control_signal",
+          "message_type": "std_msgs/Int32",
+          "value": 1
+        },
+        {
+          "name": "empty",
+          "label": "Empty",
+          "type": "button",
+          "target_topic": "/rov/depth/control_signal",
+          "message_type": "std_msgs/Int32",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "id": "/topics/rov/depth/current",
+      "name": "Current Depth",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Current measured ROV depth published by the water pressure sensor.",
+      "enabled": true,
+      "ros_topic": "/rov/depth/current",
+      "message_type": "std_msgs/Float64",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/rov/depth/target",
+      "name": "Target Depth",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Target depth published by the keyboard control node.",
+      "enabled": true,
+      "ros_topic": "/rov/depth/target",
+      "message_type": "std_msgs/Float64",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/rov/depth/error",
+      "name": "Depth Error",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Depth error calculated by the hold depth node.",
+      "enabled": true,
+      "ros_topic": "/rov/depth/error",
+      "message_type": "std_msgs/Float64",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/rov/depth/control_signal",
+      "name": "Control Signal",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Control signal published by hold depth node and consumed by the microcontroller.",
+      "enabled": true,
+      "ros_topic": "/rov/depth/control_signal",
+      "message_type": "std_msgs/Int32",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/nodes/keyboard_control",
+      "name": "Keyboard Control",
+      "type": "node",
+      "category": "Nodes",
+      "description": "Keyboard control node that publishes the target depth.",
+      "enabled": true,
+      "ros_node": "/keyboard_control",
+      "logs": {
+        "source": "/nodes/keyboard_control",
+        "level": "info",
+        "max_lines": 50
+      }
+    },
+    {
+      "id": "/nodes/hold_depth",
+      "name": "Hold Depth Node",
+      "type": "node",
+      "category": "Nodes",
+      "description": "Subscribes to current depth and target depth, calculates depth error, and publishes pump control signal.",
+      "enabled": true,
+      "ros_node": "/hold_depth",
+      "logs": {
+        "source": "/nodes/hold_depth",
+        "level": "info",
+        "max_lines": 50
+      }
+    },
+    {
+      "id": "/nodes/micro_controller",
+      "name": "Microcontroller",
+      "type": "node",
+      "category": "Nodes",
+      "description": "Subscribes to the control signal and controls the water pump hardware.",
+      "enabled": true,
+      "ros_node": "/micro_controller",
+      "logs": {
+        "source": "/nodes/micro_controller",
+        "level": "info",
+        "max_lines": 50
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "/hardware/sensors/water_pressure",
+      "to": "/topics/rov/depth/current",
+      "label": "publishes"
+    },
+    {
+      "from": "/topics/rov/depth/current",
+      "to": "/nodes/hold_depth",
+      "label": "subscribes"
+    },
+    {
+      "from": "/nodes/keyboard_control",
+      "to": "/topics/rov/depth/target",
+      "label": "publishes"
+    },
+    {
+      "from": "/topics/rov/depth/target",
+      "to": "/nodes/hold_depth",
+      "label": "subscribes"
+    },
+    {
+      "from": "/nodes/hold_depth",
+      "to": "/topics/rov/depth/error",
+      "label": "publishes"
+    },
+    {
+      "from": "/nodes/hold_depth",
+      "to": "/topics/rov/depth/control_signal",
+      "label": "publishes"
+    },
+    {
+      "from": "/topics/rov/depth/control_signal",
+      "to": "/nodes/micro_controller",
+      "label": "subscribes"
+    },
+    {
+      "from": "/nodes/micro_controller",
+      "to": "/hardware/water_pump",
+      "label": "controls"
+    }
+  ]
+}

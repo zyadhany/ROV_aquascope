@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "viewport": {
+    "zoom": 0.6966568724095688,
+    "pan_x": 113.98948155698884,
+    "pan_y": 97.49497544123687
+  },
+  "positions": {
+    "/hardware/sensors/water_pressure": {
+      "x": 75.25831909260671,
+      "y": 220.0
+    },
+    "/hardware/water_pump": {
+      "x": 1640.0,
+      "y": 430.0
+    },
+    "/topics/rov/depth/current": {
+      "x": 360.0,
+      "y": 220.0
+    },
+    "/topics/rov/depth/target": {
+      "x": 360.0,
+      "y": 420.0
+    },
+    "/topics/rov/depth/error": {
+      "x": 354.23977067308846,
+      "y": 86.47303410806896
+    },
+    "/topics/rov/depth/control_signal": {
+      "x": 1000.0,
+      "y": 430.0
+    },
+    "/nodes/keyboard_control": {
+      "x": 80.0,
+      "y": 420.0
+    },
+    "/nodes/hold_depth": {
+      "x": 707.2731106983609,
+      "y": 302.7748774536669
+    },
+    "/nodes/micro_controller": {
+      "x": 1320.0,
+      "y": 430.0
+    }
+  },
+  "groups": [
+    {
+      "id": "sensors",
+      "label": "Sensors",
+      "color": "#06b6d4",
+      "priority": 10,
+      "block_ids": [
+        "/hardware/sensors/water_pressure"
+      ]
+    },
+    {
+      "id": "topics",
+      "label": "Topics",
+      "color": "#22c55e",
+      "priority": 20,
+      "block_ids": [
+        "/topics/rov/depth/current",
+        "/topics/rov/depth/target",
+        "/topics/rov/depth/error",
+        "/topics/rov/depth/control_signal"
+      ]
+    },
+    {
+      "id": "nodes",
+      "label": "Nodes",
+      "color": "#3b82f6",
+      "priority": 30,
+      "block_ids": [
+        "/nodes/keyboard_control",
+        "/nodes/hold_depth",
+        "/nodes/micro_controller"
+      ]
+    },
+    {
+      "id": "actuators",
+      "label": "Actuators",
+      "color": "#ef4444",
+      "priority": 40,
+      "block_ids": [
+        "/hardware/water_pump"
+      ]
+    }
+  ]
+}
