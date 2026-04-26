@@ -13,6 +13,32 @@ class FakeRosInterface:
     def get_logs(self, source: str) -> dict[str, object]:
         return {'source': source, 'lines': []}
 
+    def watch_topic(self, topic: str, message_type: str = '') -> dict[str, object]:
+        return {
+            'success': True,
+            'topic': topic,
+            'message_type': message_type,
+            'message': 'Watching topic.',
+        }
+
+    def get_topic_info(self, topic: str) -> dict[str, object]:
+        return {
+            'topic': topic,
+            'message_type': 'std_msgs/Float64',
+            'status': 'active',
+            'message': 'Live data received.',
+            'publishers_count': 1,
+            'subscribers_count': 0,
+            'frequency_hz': 10.0,
+        }
+
+    def get_latest_topic_data(self, topic: str) -> dict[str, object]:
+        return {
+            'topic': topic,
+            'data': {'data': 1.25},
+            'received_at': '2026-04-25T00:00:00+00:00',
+        }
+
 
 def test_flowchart_manager_reuses_cached_blocks(monkeypatch: pytest.MonkeyPatch) -> None:
     block_config = {

@@ -13,27 +13,28 @@ class PumpBlock(BaseBlock):
     }
 
     def get_status(self) -> dict[str, Any]:
-        if not self.enabled:
-            return super().get_status()
-
-        return {
-            'state': 'off',
-            'mode': 0,
-            'mode_labels': self.MODE_LABELS,
-            'message': 'Pump mode placeholder. 0=off, 1=fill, 2=drain.',
-            'status_source': self._dict_config('status_source'),
-            'last_update': self._timestamp(),
-        }
+        status = super().get_status()
+        mode = status.get('value')
+        try:
+            mode = int(mode)
+        except (TypeError, ValueError):
+            pass
+        status['mode'] = mode
+        status['mode_label'] = self.MODE_LABELS.get(mode)
+        status['mode_labels'] = self.MODE_LABELS
+        if status['mode_label']:
+            status['state'] = status['mode_label']
+        return status
 
     def get_data(self) -> dict[str, Any]:
-        return {
-            'values': self._data_from_sources(),
-            'mode_labels': self.MODE_LABELS,
-            'last_update': self._timestamp(),
-        }
-
-    def get_controls(self) -> list[dict[str, Any]]:
-        return self._list_config('commands')
-
-    def send_command(self, command: dict[str, Any]) -> dict[str, Any]:
-        return super().send_command(command)
+        data = super().get_data()
+        data['mode_labels'] = self.MODE_LABELS
+        for source in data.get('values', {}).values():
+            if not isinstance(source, dict):
+                continue
+            try:
+                mode = int(source.get('value'))
+            except (TypeError, ValueError):
+                continue
+            source['label'] = self.MODE_LABELS.get(mode)
+        return data

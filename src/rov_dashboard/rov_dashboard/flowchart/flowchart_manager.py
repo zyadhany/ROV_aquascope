@@ -110,7 +110,7 @@ class FlowchartManager:
         block = self._get_block_or_raise(block_id)
 
         status_detail = block.get_status()
-        status = status_detail.get('state', 'placeholder')
+        status = status_detail.get('state', 'unknown')
 
         return {
             'id': block.id,

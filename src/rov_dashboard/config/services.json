@@ -1,76 +1,114 @@
 {
   "services": [
     {
-      "id": "depth_hold",
-      "node_name": "/hold_depth",
-      "aliases": ["depth_hold_node"],
-      "name": "Depth Hold",
-      "description": "Maintains target depth using pressure sensor input and ballast commands.",
+      "id": "full_simulation_stack",
+      "node_name": "/sim_launch",
+      "aliases": [
+        "simulation",
+        "gazebo",
+        "bridge",
+        "my_robot_sim"
+      ],
+      "name": "Full Simulation Stack",
+      "description": "Runs ros2 launch my_robot_sim sim.launch.py. This starts Gazebo, ros_gz_bridge parameter_bridge, ros_gz_image image_bridge, thruster_controller, and depth_hold_node.",
+      "type": "launch",
+      "status": "stopped",
+      "start_command": "ros2 launch my_robot_sim sim.launch.py",
+      "stop_method": "managed_shutdown",
+      "logs": {
+        "source": "full_simulation_stack",
+        "max_lines": 200
+      }
+    },
+    {
+      "id": "thruster_controller",
+      "node_name": "/thruster_controller",
+      "aliases": [
+        "robot_controller",
+        "my_robot_sim.control"
+      ],
+      "name": "Thruster Controller",
+      "description": "Standalone my_robot_sim robot_controller executable. Normally already started by full_simulation_stack.",
       "type": "ros_node",
       "status": "stopped",
-      "start_command": "ros2 run rov_control depth_hold",
+      "start_command": "ros2 run my_robot_sim robot_controller",
       "stop_method": "managed_shutdown",
       "logs": {
-        "source": "/nodes/depth_hold",
-        "max_lines": 100
+        "source": "/thruster_controller",
+        "max_lines": 200
       }
     },
     {
-      "id": "keyboard_control",
-      "node_name": "/keyboard_control",
-      "aliases": ["keyboard_control_node"],
-      "name": "Keyboard Control",
-      "description": "Operator keyboard control process for manual ROV motion.",
-      "type": "operator_tool",
+      "id": "depth_hold_node",
+      "node_name": "/depth_hold_node",
+      "aliases": [
+        "depth_hold",
+        "my_robot_sim.depth_hold_node"
+      ],
+      "name": "Depth Hold Node",
+      "description": "Standalone pulse-based ballast depth controller. Normally already started by full_simulation_stack.",
+      "type": "ros_node",
       "status": "stopped",
-      "start_command": "ros2 run rov_control keyboard_control",
+      "start_command": "ros2 run my_robot_sim depth_hold_node",
       "stop_method": "managed_shutdown",
       "logs": {
-        "source": "keyboard_control",
-        "max_lines": 100
+        "source": "/depth_hold_node",
+        "max_lines": 200
       }
     },
     {
-      "id": "mobile_api",
-      "node_name": "/mobile_api",
-      "aliases": ["mobile_api_node"],
-      "name": "Mobile API",
-      "description": "Optional mobile client API bridge for remote status viewing.",
+      "id": "rov_api_server",
+      "node_name": "/rov_api_server",
+      "aliases": [
+        "server",
+        "flask_api",
+        "camera_server"
+      ],
+      "name": "ROV Flask API + Camera Server",
+      "description": "Runs my_robot_sim.server on port 5000. Publishes /rov/move_cmd and serves /camera.jpg, /camera.mjpg, and /health.",
       "type": "api",
       "status": "stopped",
-      "start_command": "ros2 run rov_dashboard mobile_api",
+      "start_command": "ros2 run my_robot_sim server",
       "stop_method": "managed_shutdown",
       "logs": {
-        "source": "mobile_api",
-        "max_lines": 100
+        "source": "/rov_api_server",
+        "max_lines": 200
       }
     },
     {
-      "id": "camera_stream",
-      "node_name": "/camera_stream",
-      "aliases": ["camera_stream_node"],
-      "name": "Camera Stream",
-      "description": "Camera stream relay placeholder for future image transport.",
-      "type": "media",
+      "id": "keyboard_controller",
+      "node_name": "/rov_keyboard_controller",
+      "aliases": [
+        "keyboard",
+        "operator_keyboard"
+      ],
+      "name": "Keyboard Controller",
+      "description": "Interactive terminal keyboard controller. Best run manually in a terminal because it reads raw keyboard input from stdin.",
+      "type": "operator_tool",
       "status": "stopped",
-      "start_command": "ros2 run rov_camera camera_stream",
+      "start_command": "ros2 run my_robot_sim keyboard_controller",
       "stop_method": "managed_shutdown",
       "logs": {
-        "source": "/hardware/cameras/front",
-        "max_lines": 100
+        "source": "/rov_keyboard_controller",
+        "max_lines": 200
       }
     },
     {
       "id": "dashboard_backend",
+      "node_name": "/dashboard_ros_interface",
+      "aliases": [
+        "rov_dashboard",
+        "fastapi_dashboard"
+      ],
       "name": "Dashboard Backend",
-      "description": "FastAPI backend serving the web dashboard and placeholder APIs.",
+      "description": "FastAPI dashboard backend on port 8000. It serves the web UI and owns the dashboard_ros_interface ROS node.",
       "type": "web_backend",
       "status": "running",
       "start_command": "ros2 run rov_dashboard dashboard_backend",
-      "stop_method": "manual",
+      "stop_method": "managed_shutdown",
       "logs": {
-        "source": "dashboard_backend",
-        "max_lines": 100
+        "source": "/dashboard_ros_interface",
+        "max_lines": 200
       }
     }
   ]

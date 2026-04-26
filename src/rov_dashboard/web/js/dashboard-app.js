@@ -536,13 +536,17 @@ export class DashboardApp {
     const response = await fetch(`/api/services/${encodeURIComponent(serviceId)}/${action}`, {
       method: 'POST',
     });
+    const result = await response.json();
     if (!response.ok) {
-      this.setSaveStatus('Service action failed', 'error');
+      this.setSaveStatus(result.message || 'Service action failed', 'error');
       return;
     }
 
     await this.loadServices();
-    this.setSaveStatus(`Service ${action} accepted`, 'success');
+    this.setSaveStatus(
+      result.message || `Service ${action} accepted`,
+      result.success === false ? 'error' : 'success',
+    );
   }
 
   async loadFlowchart() {

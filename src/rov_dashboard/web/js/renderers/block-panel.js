@@ -15,6 +15,58 @@ function renderRows(rows) {
   `).join('');
 }
 
+function renderFieldRow(label, attribute, field, value) {
+  return `
+    <div class="detail-row">
+      <span>${escapeHtml(label)}</span>
+      <strong ${attribute}="${escapeHtml(field)}">${escapeHtml(value)}</strong>
+    </div>
+  `;
+}
+
+function formatValue(value, unit = '') {
+  if (value === null || value === undefined || value === '') {
+    return 'Waiting for data';
+  }
+
+  const formatted = typeof value === 'object'
+    ? JSON.stringify(value)
+    : String(value);
+  return unit ? `${formatted} ${unit}` : formatted;
+}
+
+function formatSourceValue(source) {
+  if (source.label) {
+    return source.value === null || source.value === undefined
+      ? source.label
+      : `${source.label} (${source.value})`;
+  }
+
+  return formatValue(source.value, source.unit);
+}
+
+function formatSourceMeta(source) {
+  const parts = [
+    source.topic,
+    source.message_type,
+    source.frequency_hz !== undefined ? `${Number(source.frequency_hz || 0).toFixed(2)} Hz` : '',
+  ].filter(Boolean);
+
+  return parts.join(' | ');
+}
+
+function getValueEntries(snapshot) {
+  const values = snapshot.selectedState?.data?.values;
+  if (!values || typeof values !== 'object' || Array.isArray(values)) {
+    return [];
+  }
+
+  return Object.entries(values).map(([name, source]) => ({
+    name,
+    source: source && typeof source === 'object' ? source : { value: source },
+  }));
+}
+
 function detailRows(block) {
   const rows = [
     // ['Name', block.name],
@@ -90,12 +142,22 @@ function renderMedia(block, state) {
   }
 
   const media = state?.data?.media || block.media || {};
+  const rows = [
+    ['Source', media.topic || media.stream_url || 'Not configured'],
+    ['Status', media.status || (media.available ? 'configured' : 'not_configured')],
+    ['Message Type', media.message_type || ''],
+    ['Frequency Hz', media.frequency_hz === undefined ? '' : Number(media.frequency_hz || 0).toFixed(2)],
+    ['Last Frame', media.last_received_at || 'No frame received yet'],
+  ];
+
   return `
     <section class="detail-section">
       <h3>Media</h3>
-      <div class="media-placeholder">
-        <span>Camera Placeholder</span>
-        <strong>${escapeHtml(media.topic || 'No topic')}</strong>
+      <div class="media-viewer">
+        <strong>${escapeHtml(media.message || 'Camera media source configured.')}</strong>
+        <div class="detail-rows compact-rows">
+          ${renderRows(rows.filter(([, value]) => value !== undefined && value !== null && value !== ''))}
+        </div>
       </div>
     </section>
   `;
@@ -225,10 +287,74 @@ function renderTopicLiveData(snapshot) {
 }
 
 function renderStateData(snapshot) {
+  if (snapshot.selectedBlock?.type === 'node') {
+    return renderNodeData(snapshot);
+  }
+
+  const entries = getValueEntries(snapshot);
+  const statusDetail = snapshot.selectedState?.status_detail || {};
+
   return `
     <section class="detail-section">
-      <h3>Data</h3>
-      <pre class="data-box" data-state-field="dataJson">${prettyJson(snapshot.selectedState?.data || {})}</pre>
+      <h3>Telemetry</h3>
+      ${entries.length ? `
+        <div class="metric-list">
+          ${entries.map(({ name, source }, index) => `
+            <div class="metric-row">
+              <div>
+                <span>${escapeHtml(name)}</span>
+                <small data-source-meta="${index}">${escapeHtml(formatSourceMeta(source))}</small>
+              </div>
+              <strong data-source-value="${index}">${escapeHtml(formatSourceValue(source))}</strong>
+              <em data-source-status="${index}">${escapeHtml(source.status || 'unknown')}</em>
+            </div>
+          `).join('')}
+        </div>
+      ` : '<div class="subtle-text">No telemetry sources configured.</div>'}
+    </section>
+
+    <section class="detail-section">
+      <h3>Runtime</h3>
+      <div class="detail-rows compact-rows">
+        ${renderFieldRow('State', 'data-runtime-field', 'state', snapshot.selectedState?.status || statusDetail.state || 'unknown')}
+        ${renderFieldRow('Message', 'data-runtime-field', 'message', statusDetail.message || '')}
+        ${renderFieldRow('Last Update', 'data-runtime-field', 'lastUpdate', snapshot.selectedState?.last_update || statusDetail.last_update || '')}
+      </div>
+    </section>
+  `;
+}
+
+function renderNodeData(snapshot) {
+  const data = snapshot.selectedState?.data || {};
+  const publishers = Array.isArray(data.publishers) ? data.publishers : [];
+  const subscribers = Array.isArray(data.subscribers) ? data.subscribers : [];
+  const services = Array.isArray(data.services) ? data.services : [];
+
+  return `
+    <section class="detail-section">
+      <h3>ROS Node</h3>
+      <div class="detail-rows compact-rows">
+        ${renderFieldRow('Status', 'data-node-field', 'status', data.status || snapshot.selectedState?.status || 'unknown')}
+        ${renderFieldRow('Namespace', 'data-node-field', 'namespace', data.node_namespace || '')}
+        ${renderFieldRow('Publishers', 'data-node-field', 'publishersCount', String(publishers.length))}
+        ${renderFieldRow('Subscribers', 'data-node-field', 'subscribersCount', String(subscribers.length))}
+        ${renderFieldRow('Services', 'data-node-field', 'servicesCount', String(services.length))}
+      </div>
+    </section>
+
+    <section class="detail-section">
+      <h3>Publishers</h3>
+      <div data-node-field="publishersHtml">${renderEndpointList(publishers)}</div>
+    </section>
+
+    <section class="detail-section">
+      <h3>Subscribers</h3>
+      <div data-node-field="subscribersHtml">${renderEndpointList(subscribers)}</div>
+    </section>
+
+    <section class="detail-section">
+      <h3>Services</h3>
+      <div data-node-field="servicesHtml">${renderEndpointList(services)}</div>
     </section>
   `;
 }
@@ -408,12 +534,23 @@ function getControlsSignature(controls) {
   ].join(':')).join('|');
 }
 
+function getDataSignature(snapshot) {
+  if (isTopicBlock(snapshot.selectedBlock)) {
+    return 'topic';
+  }
+
+  return getValueEntries(snapshot)
+    .map(({ name }, index) => `${index}:${name}`)
+    .join('|');
+}
+
 function getRenderKey(snapshot, controls) {
   return [
     snapshot.selectedBlock?.id || '',
     snapshot.selectedBlock?.type || '',
     isTopicBlock(snapshot.selectedBlock) ? 'topic' : 'generic',
     snapshot.topicPublishDraft.advanced ? 'advanced' : 'simple',
+    getDataSignature(snapshot),
     getControlsSignature(controls),
   ].join('::');
 }
@@ -445,9 +582,70 @@ function updateBlockDetails(container, snapshot) {
       renderTopicPublishResponse(snapshot.topicPublishResponse),
     );
   } else {
+    getValueEntries(snapshot).forEach(({ source }, index) => {
+      setElementText(
+        container.querySelector(`[data-source-value="${index}"]`),
+        formatSourceValue(source),
+      );
+      setElementText(
+        container.querySelector(`[data-source-status="${index}"]`),
+        source.status || 'unknown',
+      );
+      setElementText(
+        container.querySelector(`[data-source-meta="${index}"]`),
+        formatSourceMeta(source),
+      );
+    });
+
+    const statusDetail = snapshot.selectedState?.status_detail || {};
     setElementText(
-      container.querySelector('[data-state-field="dataJson"]'),
-      prettyJson(snapshot.selectedState?.data || {}),
+      container.querySelector('[data-runtime-field="state"]'),
+      snapshot.selectedState?.status || statusDetail.state || 'unknown',
+    );
+    setElementText(
+      container.querySelector('[data-runtime-field="message"]'),
+      statusDetail.message || '',
+    );
+    setElementText(
+      container.querySelector('[data-runtime-field="lastUpdate"]'),
+      snapshot.selectedState?.last_update || statusDetail.last_update || '',
+    );
+
+    const nodeData = snapshot.selectedState?.data || {};
+    const nodePublishers = Array.isArray(nodeData.publishers) ? nodeData.publishers : [];
+    const nodeSubscribers = Array.isArray(nodeData.subscribers) ? nodeData.subscribers : [];
+    const nodeServices = Array.isArray(nodeData.services) ? nodeData.services : [];
+    setElementText(
+      container.querySelector('[data-node-field="status"]'),
+      nodeData.status || snapshot.selectedState?.status || 'unknown',
+    );
+    setElementText(
+      container.querySelector('[data-node-field="namespace"]'),
+      nodeData.node_namespace || '',
+    );
+    setElementText(
+      container.querySelector('[data-node-field="publishersCount"]'),
+      String(nodePublishers.length),
+    );
+    setElementText(
+      container.querySelector('[data-node-field="subscribersCount"]'),
+      String(nodeSubscribers.length),
+    );
+    setElementText(
+      container.querySelector('[data-node-field="servicesCount"]'),
+      String(nodeServices.length),
+    );
+    setElementHtml(
+      container.querySelector('[data-node-field="publishersHtml"]'),
+      renderEndpointList(nodePublishers),
+    );
+    setElementHtml(
+      container.querySelector('[data-node-field="subscribersHtml"]'),
+      renderEndpointList(nodeSubscribers),
+    );
+    setElementHtml(
+      container.querySelector('[data-node-field="servicesHtml"]'),
+      renderEndpointList(nodeServices),
     );
 
     setElementHtml(

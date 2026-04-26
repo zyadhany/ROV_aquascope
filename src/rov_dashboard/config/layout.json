@@ -1,88 +1,197 @@
 {
   "version": 1,
   "viewport": {
-    "zoom": 0.6966568724095688,
-    "pan_x": 113.98948155698884,
-    "pan_y": 97.49497544123687
+    "zoom": 0.6108312603395905,
+    "pan_x": -102.87706252025737,
+    "pan_y": -16.80562676756925
   },
   "positions": {
-    "/hardware/sensors/water_pressure": {
-      "x": 75.25831909260671,
-      "y": 220.0
+    "/hardware/microcontroller": {
+      "x": 1699.945707629324,
+      "y": 787.5587631395646
     },
-    "/hardware/water_pump": {
-      "x": 1640.0,
-      "y": 430.0
+    "/hardware/actuators/left_thruster": {
+      "x": 1977.045222204096,
+      "y": 713.6241693195683
     },
-    "/topics/rov/depth/current": {
-      "x": 360.0,
-      "y": 220.0
+    "/hardware/actuators/right_thruster": {
+      "x": 1974.634644790914,
+      "y": 833.134261307522
     },
-    "/topics/rov/depth/target": {
-      "x": 360.0,
-      "y": 420.0
+    "/hardware/actuators/pump": {
+      "x": 1595.1039237556367,
+      "y": 1033.872836509114
     },
-    "/topics/rov/depth/error": {
-      "x": 354.23977067308846,
-      "y": 86.47303410806896
+    "/hardware/actuators/light": {
+      "x": 1386.9107056409546,
+      "y": 1033.2669986838139
     },
-    "/topics/rov/depth/control_signal": {
-      "x": 1000.0,
-      "y": 430.0
+    "/hardware/sensors/camera": {
+      "x": 1585.8489085093786,
+      "y": 1162.559046403312
     },
-    "/nodes/keyboard_control": {
-      "x": 80.0,
-      "y": 420.0
+    "/hardware/sensors/imu": {
+      "x": 1966.1109364969104,
+      "y": 1026.8616355981248
     },
-    "/nodes/hold_depth": {
-      "x": 707.2731106983609,
-      "y": 302.7748774536669
+    "/hardware/sensors/pressure_sensor": {
+      "x": 1778.9927820521439,
+      "y": 1032.2360752896304
     },
-    "/nodes/micro_controller": {
-      "x": 1320.0,
-      "y": 430.0
+    "/nodes/mcu_gateway": {
+      "x": 1699.3003070743787,
+      "y": 607.2834651960475
+    },
+    "/nodes/camera_streamer": {
+      "x": 979.2777428094118,
+      "y": 1075.5855392043984
+    },
+    "/topics/camera/image": {
+      "x": 645.8242593536166,
+      "y": 827.7855478683332
+    },
+    "/topics/pressure/data": {
+      "x": 2098.5318765611105,
+      "y": 503.9579416425672
+    },
+    "/topics/depth/current": {
+      "x": 1717.924175406912,
+      "y": 352.39360795149196
+    },
+    "/topics/depth/target": {
+      "x": 1509.7193813705308,
+      "y": 351.5387479688163
+    },
+    "/topics/depth/error": {
+      "x": 2102.3235185524236,
+      "y": 353.13500436093807
+    },
+    "/topics/cmd/left_thruster": {
+      "x": 1408.3985034046464,
+      "y": 679.2643845224628
+    },
+    "/topics/cmd/right_thruster": {
+      "x": 1414.1795191720182,
+      "y": 788.8180619158278
+    },
+    "/topics/cmd/pump": {
+      "x": 1907.006665289271,
+      "y": 349.7280850017868
+    },
+    "/topics/cmd/light": {
+      "x": 1410.5742413532064,
+      "y": 572.7968773081634
+    },
+    "/nodes/depth_controller": {
+      "x": 1798.9035479140955,
+      "y": 191.10388503169156
+    },
+    "/nodes/rov_controller": {
+      "x": 1000.7654465417932,
+      "y": 587.2660689588631
+    },
+    "/nodes/keyboard_controller": {
+      "x": 886.0479114672572,
+      "y": 351.33485784592324
+    },
+    "/topics/control/command": {
+      "x": 742.6825087071368,
+      "y": 580.4704129604016
+    },
+    "/nodes/mobile_app_controller": {
+      "x": 644.5173692296796,
+      "y": 348.38465271133083
     }
   },
   "groups": [
     {
-      "id": "sensors",
-      "label": "Sensors",
-      "color": "#06b6d4",
+      "id": "input_controllers",
+      "label": "Input Controllers",
+      "color": "#f59e0b",
       "priority": 10,
       "block_ids": [
-        "/hardware/sensors/water_pressure"
+        "/nodes/keyboard_controller",
+        "/nodes/mobile_app_controller"
       ]
     },
     {
-      "id": "topics",
-      "label": "Topics",
+      "id": "control_topics",
+      "label": "Command Topics",
       "color": "#22c55e",
       "priority": 20,
       "block_ids": [
-        "/topics/rov/depth/current",
-        "/topics/rov/depth/target",
-        "/topics/rov/depth/error",
-        "/topics/rov/depth/control_signal"
+        "/topics/control/command",
+        "/topics/cmd/left_thruster",
+        "/topics/cmd/right_thruster",
+        "/topics/cmd/pump",
+        "/topics/cmd/light"
       ]
     },
     {
-      "id": "nodes",
-      "label": "Nodes",
+      "id": "control_nodes",
+      "label": "Control Nodes",
       "color": "#3b82f6",
       "priority": 30,
       "block_ids": [
-        "/nodes/keyboard_control",
-        "/nodes/hold_depth",
-        "/nodes/micro_controller"
+        "/nodes/rov_controller",
+        "/nodes/depth_controller"
+      ]
+    },
+    {
+      "id": "gateway",
+      "label": "MCU Communication",
+      "color": "#a855f7",
+      "priority": 40,
+      "block_ids": [
+        "/nodes/mcu_gateway",
+        "/hardware/microcontroller"
       ]
     },
     {
       "id": "actuators",
       "label": "Actuators",
       "color": "#ef4444",
-      "priority": 40,
+      "priority": 50,
       "block_ids": [
-        "/hardware/water_pump"
+        "/hardware/actuators/left_thruster",
+        "/hardware/actuators/right_thruster",
+        "/hardware/actuators/pump",
+        "/hardware/actuators/light"
+      ]
+    },
+    {
+      "id": "sensors",
+      "label": "Sensors",
+      "color": "#06b6d4",
+      "priority": 60,
+      "block_ids": [
+        "/hardware/sensors/camera",
+        "/hardware/sensors/imu",
+        "/hardware/sensors/pressure_sensor"
+      ]
+    },
+    {
+      "id": "sensor_topics",
+      "label": "Sensor Topics",
+      "color": "#14b8a6",
+      "priority": 70,
+      "block_ids": [
+        "/topics/camera/image",
+        "/topics/pressure/data",
+        "/topics/depth/current",
+        "/topics/depth/target",
+        "/topics/depth/error"
+      ]
+    },
+    {
+      "id": "camera_pipeline",
+      "label": "Camera Pipeline",
+      "color": "#ec4899",
+      "priority": 80,
+      "block_ids": [
+        "/hardware/sensors/camera",
+        "/nodes/camera_streamer",
+        "/topics/camera/image"
       ]
     }
   ]

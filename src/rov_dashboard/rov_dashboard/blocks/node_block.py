@@ -9,9 +9,14 @@ class NodeBlock(BaseBlock):
     def get_status(self) -> dict[str, Any]:
         node_name = str(self.raw_config.get('ros_node', self.id)).strip()
         node_info = self.ros_interface.get_node_info(node_name)
+        state = node_info.get('status', 'unknown')
         return {
-            'state': node_info.get('status', 'placeholder'),
-            'message': 'Node info is placeholder data.',
+            'state': state,
+            'message': (
+                'ROS node is active.'
+                if state == 'active'
+                else 'ROS node was not found in the current graph.'
+            ),
             'node': node_name,
             'last_update': self._timestamp(),
         }

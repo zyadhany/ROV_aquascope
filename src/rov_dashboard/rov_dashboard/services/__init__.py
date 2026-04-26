@@ -1,1 +1,1 @@
-"""Service metadata and placeholder lifecycle management."""
+"""Service metadata and lifecycle management."""

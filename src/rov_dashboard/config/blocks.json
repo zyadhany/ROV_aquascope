@@ -1,82 +1,123 @@
 {
   "blocks": [
     {
-      "id": "/hardware/sensors/water_pressure",
-      "name": "Water Pressure",
-      "type": "sensor",
-      "category": "Sensors",
-      "description": "Reads water pressure and publishes the calculated current depth.",
-      "status_source": {
-        "source_type": "topic",
-        "topic": "/hardware/sensors/water_pressure/status",
-        "message_type": "std_msgs/String",
-        "field": "data"
-      },
-      "data_sources": [
-        {
-          "name": "Current Depth",
-          "source_type": "topic",
-          "topic": "/rov/depth/current",
-          "message_type": "std_msgs/Float64",
-          "field": "data",
-          "unit": "m"
-        }
-      ]
+      "id": "/hardware/microcontroller",
+      "name": "Microcontroller",
+      "type": "interface",
+      "category": "Hardware",
+      "description": "Main microcontroller connected to the real ROV hardware. Receives actuator commands from the MCU Gateway over serial and sends sensor data back."
     },
     {
-      "id": "/hardware/water_pump",
-      "name": "Water Pump",
+      "id": "/hardware/actuators/left_thruster",
+      "name": "Left Thruster",
+      "type": "thruster",
+      "category": "Actuators",
+      "description": "Left physical thruster controlled by the microcontroller."
+    },
+    {
+      "id": "/hardware/actuators/right_thruster",
+      "name": "Right Thruster",
+      "type": "thruster",
+      "category": "Actuators",
+      "description": "Right physical thruster controlled by the microcontroller."
+    },
+    {
+      "id": "/hardware/actuators/pump",
+      "name": "Pump",
       "type": "pump",
       "category": "Actuators",
-      "description": "Pump controlled by the microcontroller. Used to fill or empty the ballast tank.",
-      "status_source": {
-        "source_type": "topic",
-        "topic": "/hardware/water_pump/status",
-        "message_type": "std_msgs/Int32",
-        "field": "data"
-      },
-      "data_sources": [
-        {
-          "name": "Pump Mode",
-          "source_type": "topic",
-          "topic": "/hardware/water_pump/status",
-          "message_type": "std_msgs/Int32",
-          "field": "data"
-        }
-      ],
-      "commands": [
-        {
-          "name": "stop",
-          "label": "Stop",
-          "type": "button",
-          "target_topic": "/rov/depth/control_signal",
-          "message_type": "std_msgs/Int32",
-          "value": 0
-        },
-        {
-          "name": "fill",
-          "label": "Fill",
-          "type": "button",
-          "target_topic": "/rov/depth/control_signal",
-          "message_type": "std_msgs/Int32",
-          "value": 1
-        },
-        {
-          "name": "empty",
-          "label": "Empty",
-          "type": "button",
-          "target_topic": "/rov/depth/control_signal",
-          "message_type": "std_msgs/Int32",
-          "value": 2
-        }
-      ]
+      "description": "Pump actuator controlled by the microcontroller. Used by the depth controller for vertical/depth control."
     },
     {
-      "id": "/topics/rov/depth/current",
+      "id": "/hardware/actuators/light",
+      "name": "Light",
+      "type": "light",
+      "category": "Actuators",
+      "description": "ROV light controlled by the microcontroller."
+    },
+    {
+      "id": "/hardware/sensors/camera",
+      "name": "Camera",
+      "type": "camera",
+      "category": "Sensors",
+      "description": "Camera hardware. It is handled by the Camera Streamer node, not through the microcontroller serial connection."
+    },
+    {
+      "id": "/hardware/sensors/imu",
+      "name": "IMU",
+      "type": "sensor",
+      "category": "Sensors",
+      "description": "IMU sensor connected to the microcontroller."
+    },
+    {
+      "id": "/hardware/sensors/pressure_sensor",
+      "name": "Pressure Sensor",
+      "type": "sensor",
+      "category": "Sensors",
+      "description": "Pressure sensor connected to the microcontroller. Used to produce pressure data and current depth."
+    },
+    {
+      "id": "/nodes/mcu_gateway",
+      "name": "MCU Gateway",
+      "type": "node",
+      "category": "Nodes",
+      "description": "Backend/ROS node that communicates with the microcontroller over serial. It receives ROS command topics and publishes processed sensor data.",
+      "ros_node": "/mcu_gateway",
+      "logs": {
+        "source": "/mcu_gateway",
+        "level": "info",
+        "max_lines": 100
+      }
+    },
+    {
+      "id": "/nodes/camera_streamer",
+      "name": "Camera Streamer",
+      "type": "node",
+      "category": "Nodes",
+      "description": "Node that reads the camera stream and publishes camera frames/images without loading the microcontroller serial connection.",
+      "ros_node": "/camera_streamer",
+      "logs": {
+        "source": "/camera_streamer",
+        "level": "info",
+        "max_lines": 100
+      }
+    },
+    {
+      "id": "/topics/camera/image",
+      "name": "Camera Image",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Published camera image stream from the Camera Streamer node.",
+      "ros_topic": "/rov/camera/image",
+      "message_type": "sensor_msgs/Image",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": false,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/pressure/data",
+      "name": "Pressure Data",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Raw or processed pressure data published by the MCU Gateway.",
+      "ros_topic": "/rov/pressure/data",
+      "message_type": "std_msgs/Float64",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/depth/current",
       "name": "Current Depth",
       "type": "topic",
       "category": "Topics",
-      "description": "Current measured ROV depth published by the water pressure sensor.",
+      "description": "Current calculated depth published by the MCU Gateway.",
       "ros_topic": "/rov/depth/current",
       "message_type": "std_msgs/Float64",
       "show": {
@@ -87,11 +128,11 @@
       }
     },
     {
-      "id": "/topics/rov/depth/target",
+      "id": "/topics/depth/target",
       "name": "Target Depth",
       "type": "topic",
       "category": "Topics",
-      "description": "Target depth published by the keyboard control node.",
+      "description": "Target depth published by the ROV Controller and consumed by the Depth Controller.",
       "ros_topic": "/rov/depth/target",
       "message_type": "std_msgs/Float64",
       "show": {
@@ -102,11 +143,11 @@
       }
     },
     {
-      "id": "/topics/rov/depth/error",
+      "id": "/topics/depth/error",
       "name": "Depth Error",
       "type": "topic",
       "category": "Topics",
-      "description": "Depth error calculated by the hold depth node.",
+      "description": "Depth error published by the Depth Controller.",
       "ros_topic": "/rov/depth/error",
       "message_type": "std_msgs/Float64",
       "show": {
@@ -117,12 +158,42 @@
       }
     },
     {
-      "id": "/topics/rov/depth/control_signal",
-      "name": "Control Signal",
+      "id": "/topics/cmd/left_thruster",
+      "name": "Left Thruster Command",
       "type": "topic",
-      "category": "Topics",
-      "description": "Control signal published by hold depth node and consumed by the microcontroller.",
-      "ros_topic": "/rov/depth/control_signal",
+      "category": "Command Topics",
+      "description": "Left thruster command sent to the MCU Gateway.",
+      "ros_topic": "/rov/mcu/cmd/left_thruster",
+      "message_type": "std_msgs/Float64",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/cmd/right_thruster",
+      "name": "Right Thruster Command",
+      "type": "topic",
+      "category": "Command Topics",
+      "description": "Right thruster command sent to the MCU Gateway.",
+      "ros_topic": "/rov/mcu/cmd/right_thruster",
+      "message_type": "std_msgs/Float64",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/cmd/pump",
+      "name": "Pump Command",
+      "type": "topic",
+      "category": "Command Topics",
+      "description": "Pump command sent to the MCU Gateway.",
+      "ros_topic": "/rov/mcu/cmd/pump",
       "message_type": "std_msgs/Int32",
       "show": {
         "publishers": true,
@@ -132,85 +203,223 @@
       }
     },
     {
-      "id": "/nodes/keyboard_control",
-      "name": "Keyboard Control",
-      "type": "node",
-      "category": "Nodes",
-      "description": "Keyboard control node that publishes the target depth.",
-      "ros_node": "/keyboard_control",
-      "logs": {
-        "source": "/nodes/keyboard_control",
-        "level": "info",
-        "max_lines": 50
+      "id": "/topics/cmd/light",
+      "name": "Light Command",
+      "type": "topic",
+      "category": "Command Topics",
+      "description": "Light command sent to the MCU Gateway.",
+      "ros_topic": "/rov/mcu/cmd/light",
+      "message_type": "std_msgs/Bool",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
       }
     },
     {
-      "id": "/nodes/hold_depth",
-      "name": "Hold Depth Node",
+      "id": "/nodes/depth_controller",
+      "name": "Depth Controller",
       "type": "node",
-      "category": "Nodes",
-      "description": "Subscribes to current depth and target depth, calculates depth error, and publishes pump control signal.",
-      "ros_node": "/hold_depth",
+      "category": "Control Nodes",
+      "description": "Controller node that subscribes to current depth and target depth, publishes depth error, and commands the pump.",
+      "ros_node": "/depth_controller",
       "logs": {
-        "source": "/nodes/hold_depth",
+        "source": "/depth_controller",
         "level": "info",
-        "max_lines": 50
+        "max_lines": 100
       }
     },
     {
-      "id": "/nodes/micro_controller",
-      "name": "Microcontroller",
+      "id": "/nodes/rov_controller",
+      "name": "ROV Controller",
       "type": "node",
-      "category": "Nodes",
-      "description": "Subscribes to the control signal and controls the water pump hardware.",
-      "ros_node": "/micro_controller",
+      "category": "Control Nodes",
+      "description": "Main control node that converts high-level control commands into actuator commands and target depth.",
+      "ros_node": "/rov_controller",
       "logs": {
-        "source": "/nodes/micro_controller",
+        "source": "/rov_controller",
         "level": "info",
-        "max_lines": 50
+        "max_lines": 100
+      }
+    },
+    {
+      "id": "/nodes/keyboard_controller",
+      "name": "Keyboard Controller",
+      "type": "node",
+      "category": "Input Controllers",
+      "description": "Keyboard input node that publishes high-level control commands.",
+      "ros_node": "/keyboard_controller",
+      "logs": {
+        "source": "/keyboard_controller",
+        "level": "info",
+        "max_lines": 100
+      }
+    },
+    {
+      "id": "/topics/control/command",
+      "name": "Control Command",
+      "type": "topic",
+      "category": "Command Topics",
+      "description": "High-level command topic used by input controllers and consumed by the ROV Controller.",
+      "ros_topic": "/rov/controller/cmd",
+      "message_type": "std_msgs/String",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/nodes/mobile_app_controller",
+      "name": "Mobile App Controller",
+      "type": "node",
+      "category": "Input Controllers",
+      "description": "Mobile app input node that publishes high-level control commands.",
+      "ros_node": "/mobile_app_controller",
+      "logs": {
+        "source": "/mobile_app_controller",
+        "level": "info",
+        "max_lines": 100
       }
     }
   ],
   "connections": [
     {
-      "from": "/hardware/sensors/water_pressure",
-      "to": "/topics/rov/depth/current",
+      "from": "/hardware/microcontroller",
+      "to": "/hardware/actuators/right_thruster",
+      "label": "control signal"
+    },
+    {
+      "from": "/hardware/microcontroller",
+      "to": "/hardware/actuators/left_thruster",
+      "label": "control signal"
+    },
+    {
+      "from": "/hardware/microcontroller",
+      "to": "/hardware/actuators/light",
+      "label": "control signal"
+    },
+    {
+      "from": "/hardware/microcontroller",
+      "to": "/hardware/actuators/pump",
+      "label": "control signal"
+    },
+    {
+      "from": "/hardware/sensors/pressure_sensor",
+      "to": "/hardware/microcontroller",
+      "label": "pressure data"
+    },
+    {
+      "from": "/hardware/sensors/imu",
+      "to": "/hardware/microcontroller",
+      "label": "imu data"
+    },
+    {
+      "from": "/hardware/microcontroller",
+      "to": "/nodes/mcu_gateway",
+      "label": "serial connection"
+    },
+    {
+      "from": "/nodes/mcu_gateway",
+      "to": "/hardware/microcontroller",
+      "label": "serial connection"
+    },
+    {
+      "from": "/hardware/sensors/camera",
+      "to": "/nodes/camera_streamer",
+      "label": "raw video/image data"
+    },
+    {
+      "from": "/nodes/camera_streamer",
+      "to": "/topics/camera/image",
+      "label": "published video/image data"
+    },
+    {
+      "from": "/nodes/mcu_gateway",
+      "to": "/topics/pressure/data",
+      "label": "pressure data"
+    },
+    {
+      "from": "/nodes/mcu_gateway",
+      "to": "/topics/depth/current",
+      "label": "current depth"
+    },
+    {
+      "from": "/topics/cmd/left_thruster",
+      "to": "/nodes/mcu_gateway",
+      "label": "command value"
+    },
+    {
+      "from": "/topics/cmd/right_thruster",
+      "to": "/nodes/mcu_gateway",
+      "label": "command value"
+    },
+    {
+      "from": "/topics/cmd/pump",
+      "to": "/nodes/mcu_gateway",
+      "label": "command value"
+    },
+    {
+      "from": "/topics/cmd/light",
+      "to": "/nodes/mcu_gateway",
+      "label": "control signal"
+    },
+    {
+      "from": "/topics/depth/current",
+      "to": "/nodes/depth_controller",
+      "label": "subscribed"
+    },
+    {
+      "from": "/topics/depth/target",
+      "to": "/nodes/depth_controller",
+      "label": "subscribed"
+    },
+    {
+      "from": "/nodes/depth_controller",
+      "to": "/topics/depth/error",
       "label": "publishes"
     },
     {
-      "from": "/topics/rov/depth/current",
-      "to": "/nodes/hold_depth",
-      "label": "subscribes"
-    },
-    {
-      "from": "/nodes/keyboard_control",
-      "to": "/topics/rov/depth/target",
+      "from": "/nodes/depth_controller",
+      "to": "/topics/cmd/pump",
       "label": "publishes"
     },
     {
-      "from": "/topics/rov/depth/target",
-      "to": "/nodes/hold_depth",
-      "label": "subscribes"
+      "from": "/topics/control/command",
+      "to": "/nodes/rov_controller",
+      "label": "subscribed"
     },
     {
-      "from": "/nodes/hold_depth",
-      "to": "/topics/rov/depth/error",
+      "from": "/nodes/rov_controller",
+      "to": "/topics/cmd/left_thruster",
       "label": "publishes"
     },
     {
-      "from": "/nodes/hold_depth",
-      "to": "/topics/rov/depth/control_signal",
+      "from": "/nodes/rov_controller",
+      "to": "/topics/cmd/right_thruster",
       "label": "publishes"
     },
     {
-      "from": "/topics/rov/depth/control_signal",
-      "to": "/nodes/micro_controller",
-      "label": "subscribes"
+      "from": "/nodes/rov_controller",
+      "to": "/topics/cmd/light",
+      "label": "publishes"
     },
     {
-      "from": "/nodes/micro_controller",
-      "to": "/hardware/water_pump",
-      "label": "controls"
+      "from": "/nodes/rov_controller",
+      "to": "/topics/depth/target",
+      "label": "publishes"
+    },
+    {
+      "from": "/nodes/keyboard_controller",
+      "to": "/topics/control/command",
+      "label": "publishes"
+    },
+    {
+      "from": "/nodes/mobile_app_controller",
+      "to": "/topics/control/command",
+      "label": "publishes"
     }
   ]
 }

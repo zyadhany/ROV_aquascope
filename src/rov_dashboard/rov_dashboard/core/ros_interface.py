@@ -628,7 +628,6 @@ class RosInterface:
             'message_type': self._short_message_type(message_type),
             'message_type_full': message_type,
             'value': value,
-            'placeholder': False,
             'last_update': self._timestamp(),
             'message': 'Command published to ROS 2 topic.',
         }
@@ -640,7 +639,6 @@ class RosInterface:
         return {
             'source': source,
             'lines': lines,
-            'placeholder': False,
             'last_update': self._timestamp(),
         }
 
