@@ -1,79 +1,78 @@
 #!/usr/bin/env python3
 
 import sys
-import threading
 import termios
 import tty
 import select
 
 import rclpy
-from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from std_msgs.msg import String
 
 
-class KeyboardRosNode(Node):
+class KeyboardController(Node):
     def __init__(self):
-        super().__init__("rov_keyboard_controller")
+        super().__init__("keyboard_controller")
 
-        self.cmd_pub = self.create_publisher(String, "/rov/move_cmd", 10)
-
-        self.get_logger().info("ROS keyboard controller started")
-        self.get_logger().info(
-            "Controls: "
-            "w=forward, s=backward, a=left, d=right, g=stop, "
-            "i=up, k=hold, o=down, q=quit"
+        self.cmd_pub = self.create_publisher(
+            String,
+            "/rov/controller/cmd",
+            10,
         )
 
-    def send_move_command(self, command: str) -> None:
+        self.get_logger().info("Keyboard Controller started")
+        self.get_logger().info(
+            "Controls: "
+            "w=forward, s=backward, a=left, d=right, "
+            "g=stop, i=up, k=pump stop, o=down, "
+            "l=light toggle, q=quit"
+        )
+
+    def send_command(self, command: str):
         msg = String()
         msg.data = command
         self.cmd_pub.publish(msg)
-        self.get_logger().info(f"Sent move command: {command}")
-
-
-def spin_ros(node: Node):
-    executor = MultiThreadedExecutor()
-    executor.add_node(node)
-    try:
-        executor.spin()
-    finally:
-        executor.shutdown()
+        self.get_logger().info(f"Sent command: {command}")
 
 
 def get_key(timeout=0.1):
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
+
     try:
         tty.setraw(fd)
         ready, _, _ = select.select([sys.stdin], [], [], timeout)
+
         if ready:
             return sys.stdin.read(1)
+
         return None
+
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 
-def main():
-    rclpy.init()
-    ros_node = KeyboardRosNode()
+def main(args=None):
+    rclpy.init(args=args)
 
-    ros_thread = threading.Thread(target=spin_ros, args=(ros_node,), daemon=True)
-    ros_thread.start()
+    node = KeyboardController()
 
-    key_to_move_command = {
-        "w": "forward",
-        "s": "backward",
-        "a": "left",
-        "d": "right",
-        "g": "stop",
-        "i": "up",
-        "k": "hold",
-        "o": "down",
+    key_to_command = {
+        "w": "FORWARD 1.0",
+        "s": "BACKWARD 1.0",
+        "a": "LEFT 1.0",
+        "d": "RIGHT 1.0",
+        "g": "STOP",
+        "i": "UP",
+        "k": "PUMP_STOP",
+        "o": "DOWN",
+        "l": "LIGHT_TOGGLE",
     }
 
     try:
-        while True:
+        while rclpy.ok():
+            rclpy.spin_once(node, timeout_sec=0.01)
+
             key = get_key()
 
             if key is None:
@@ -82,17 +81,20 @@ def main():
             key = key.lower()
 
             if key == "q":
-                ros_node.send_move_command("stop")
+                node.send_command("STOP")
                 print("\nQuit")
                 break
 
-            if key in key_to_move_command:
-                command = key_to_move_command[key]
-                print(f"\nMove command: {command}")
-                ros_node.send_move_command(command)
+            if key in key_to_command:
+                command = key_to_command[key]
+                print(f"\nCommand: {command}")
+                node.send_command(command)
+
+    except KeyboardInterrupt:
+        node.send_command("STOP")
 
     finally:
-        ros_node.destroy_node()
+        node.destroy_node()
         rclpy.shutdown()
 
 

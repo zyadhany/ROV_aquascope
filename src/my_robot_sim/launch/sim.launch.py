@@ -30,38 +30,46 @@ def start_gazebo():
         ]
     ) 
 
-    return [gazebo]
-
-
+    return [gazebo, start_simulation]
 
 
 def start_bridge():
     bridge = TimerAction(
-        period=5.0,
-        actions=[
-            Node(
-                package='ros_gz_bridge',
-                executable='parameter_bridge',
-                arguments=[
-                    '/model/rov/joint/left_thruster_joint/cmd_thrust@std_msgs/msg/Float64]gz.msgs.Double',
-                    '/model/rov/joint/right_thruster_joint/cmd_thrust@std_msgs/msg/Float64]gz.msgs.Double',
-                    '/rov/ballast_cmd@std_msgs/msg/Int32]gz.msgs.Int32',
-                     '/rov/depth/current@std_msgs/msg/Float64[gz.msgs.Double',
-                     '/rov/camera/image@sensor_msgs/msg/Image@gz.msgs.Image'
-                ],
-                output='screen'
-            ),
+    period=5.0,
+    actions=[
+        Node(
+            package='ros_gz_bridge',
+            executable='parameter_bridge',
+            arguments=[
+                '/model/rov/joint/left_thruster_joint/cmd_thrust@std_msgs/msg/Float64]gz.msgs.Double',
+                '/model/rov/joint/right_thruster_joint/cmd_thrust@std_msgs/msg/Float64]gz.msgs.Double',
+                '/rov/ballast_cmd@std_msgs/msg/Int32]gz.msgs.Int32',
+                '/rov/depth/current@std_msgs/msg/Float64[gz.msgs.Double',
+                '/rov/camera/image@sensor_msgs/msg/Image@gz.msgs.Image',
 
-            Node(
-                package='ros_gz_image',
-                executable='image_bridge',
-                arguments=['/rov/camera/image'],
-                parameters=[{'qos': 'sensor_data'}],
-                output='screen'
-            ),
+                '--ros-args',
+                '-r', '/model/rov/joint/left_thruster_joint/cmd_thrust:=/sim/left_thruster/cmd',
+                '-r', '/model/rov/joint/right_thruster_joint/cmd_thrust:=/sim/right_thruster/cmd',
+                '-r', '/rov/ballast_cmd:=/sim/ballast_cmd',
+                '-r', '/rov/depth/current:=/sim/depth/current',
+                '-r', '/rov/camera/image:=/sim/camera/image',
+            ],
+            output='screen'
+        ),
+
+        # Node(
+        #     package='ros_gz_image',
+        #     executable='image_bridge',
+        #     arguments=[
+        #         '/rov/camera/image',
+        #         '--ros-args',
+        #         '-r', '/rov/camera/image:=/sim/camera/image',
+        #     ],
+        #     parameters=[{'qos': 'sensor_data'}],
+        #     output='screen'
+        # ),
         ]
     )
-
     return [bridge]
 
 def ros_node():
@@ -70,23 +78,12 @@ def ros_node():
         actions=[
             Node(
                 package='my_robot_sim',
-                executable='robot_controller',
+                executable='microcontroller_sim',
                 output='screen'
             )
         ]
     )
-
-    pumb_node = TimerAction(
-        period=1.0,
-        actions=[
-            Node(
-                package='my_robot_sim',
-                executable='depth_hold_node',
-                output='screen'
-            )
-        ]
-    )
-    return [thrusters_node, pumb_node]
+    return [thrusters_node]
 
 def generate_launch_description():
 

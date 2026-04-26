@@ -70,6 +70,36 @@
       }
     },
     {
+      "id": "/topics/mcu/serial/in",
+      "name": "MCU Serial Input",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Fake serial input topic. Dashboard/backend publishes string commands here to the microcontroller simulator.",
+      "ros_topic": "/mcu/serial/in",
+      "message_type": "std_msgs/msg/String",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/mcu/serial/out",
+      "name": "MCU Serial Output",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Fake serial output topic. Microcontroller simulator publishes string responses and sensor data here.",
+      "ros_topic": "/mcu/serial/out",
+      "message_type": "std_msgs/msg/String",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
       "id": "/nodes/camera_streamer",
       "name": "Camera Streamer",
       "type": "node",
@@ -317,14 +347,24 @@
       "label": "imu data"
     },
     {
-      "from": "/hardware/microcontroller",
-      "to": "/nodes/mcu_gateway",
-      "label": "serial connection"
+      "from": "/nodes/mcu_gateway",
+      "to": "/topics/mcu/serial/in",
+      "label": ""
     },
     {
-      "from": "/nodes/mcu_gateway",
+      "from": "/topics/mcu/serial/in",
       "to": "/hardware/microcontroller",
-      "label": "serial connection"
+      "label": ""
+    },
+    {
+      "from": "/hardware/microcontroller",
+      "to": "/topics/mcu/serial/out",
+      "label": ""
+    },
+    {
+      "from": "/topics/mcu/serial/out",
+      "to": "/nodes/mcu_gateway",
+      "label": ""
     },
     {
       "from": "/hardware/sensors/camera",
@@ -383,6 +423,11 @@
     },
     {
       "from": "/nodes/depth_controller",
+      "to": "/topics/cmd/pump",
+      "label": "publishes"
+    },
+    {
+      "from": "/nodes/rov_controller",
       "to": "/topics/cmd/pump",
       "label": "publishes"
     },
