@@ -15,6 +15,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'config'), glob('config/*.json')),
         (os.path.join('share', package_name, 'web'), glob('web/*')),
+        (os.path.join('share', package_name, 'web'), glob('web/js/*')),
     ],
     install_requires=['setuptools', 'fastapi', 'uvicorn'],
     zip_safe=True,

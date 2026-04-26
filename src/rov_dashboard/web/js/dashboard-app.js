@@ -6,6 +6,7 @@ import {
   blockApiPath,
   cloneValue,
   formatType,
+  isHardwareBlock,
   isTopicBlock,
   mergedFlowchart,
   parsePublishValue,
@@ -20,6 +21,7 @@ export class DashboardApp {
     this.selectedBlock = null;
     this.selectedState = null;
     this.selectedLogs = null;
+    this.selectedLogLimit = 100;
     this.selectedTopicData = null;
     this.commandResponse = null;
     this.topicPublishResponse = null;
@@ -69,12 +71,26 @@ export class DashboardApp {
     rootStyle.setProperty('--panel-bg', theme.panel_background);
     rootStyle.setProperty('--text-main', theme.text);
     rootStyle.setProperty('--text-muted', theme.muted_text);
-    rootStyle.setProperty('--accent', this.flowchartState.config.colors.interface);
+    rootStyle.setProperty(
+      '--accent',
+      this.flowchartState.config.colors.hardware
+        || this.flowchartState.config.colors.nodes
+        || '#64748b',
+    );
   }
 
   blockColor(blockType) {
-    return this.flowchartState.config.colors[blockType]
-      || this.flowchartState.config.colors.subsystem;
+    const colors = this.flowchartState.config.colors;
+    return colors[blockType]
+      || (blockType === 'node' ? colors.nodes : '')
+      || colors.fallback
+      || '#64748b';
+  }
+
+  edgeColor() {
+    return this.flowchartState.config.colors.edge
+      || this.flowchartState.config.colors.hardware
+      || '#64748b';
   }
 
   fallbackPosition(index) {
@@ -102,7 +118,7 @@ export class DashboardApp {
         id: connection.id || `${connection.from}-${connection.to}-${index}`,
         source: connection.from,
         target: connection.to,
-        color: this.flowchartState.config.colors.interface,
+        color: this.edgeColor(),
       },
     }));
 
@@ -242,6 +258,7 @@ export class DashboardApp {
       selectedBlock: this.selectedBlock,
       selectedState: this.selectedState,
       selectedLogs: this.selectedLogs,
+      selectedLogLimit: this.selectedLogLimit,
       selectedTopicData: this.selectedTopicData,
       commandResponse: this.commandResponse,
       topicPublishResponse: this.topicPublishResponse,
@@ -363,16 +380,26 @@ export class DashboardApp {
     this.renderEmptyDetails('Loading block.');
     this.updateStatusBar();
 
-    const [blockResponse, stateResponse] = await Promise.all([
-      fetch(blockApiPath(blockId), { cache: 'no-store' }),
-      fetch(`${blockApiPath(blockId)}/state`, { cache: 'no-store' }),
-    ]);
+    const blockResponse = await fetch(blockApiPath(blockId), { cache: 'no-store' });
 
-    if (!blockResponse.ok || !stateResponse.ok) {
+    if (!blockResponse.ok) {
       throw new Error('Block request failed.');
     }
 
     this.selectedBlock = await blockResponse.json();
+    if (isHardwareBlock(this.selectedBlock)) {
+      this.renderBlockDetails();
+      this.updateStatusBar();
+      return;
+    }
+
+    const stateResponse = await fetch(`${blockApiPath(blockId)}/state`, {
+      cache: 'no-store',
+    });
+    if (!stateResponse.ok) {
+      throw new Error('Block request failed.');
+    }
+
     this.selectedState = await stateResponse.json();
     if (isTopicBlock(this.selectedBlock)) {
       this.selectedTopicData = this.selectedState.data || null;
@@ -385,7 +412,11 @@ export class DashboardApp {
   }
 
   async refreshSelectedState() {
-    if (!this.selectedBlockId || !this.selectedBlock) {
+    if (
+      !this.selectedBlockId
+      || !this.selectedBlock
+      || isHardwareBlock(this.selectedBlock)
+    ) {
       return;
     }
 
@@ -501,7 +532,8 @@ export class DashboardApp {
       return;
     }
 
-    const response = await fetch(`${blockApiPath(this.selectedBlockId)}/logs`, {
+    const limit = Math.max(1, Number(this.selectedLogLimit) || 100);
+    const response = await fetch(`${blockApiPath(this.selectedBlockId)}/logs?limit=${limit}`, {
       cache: 'no-store',
     });
     if (!response.ok) {
@@ -715,6 +747,11 @@ export class DashboardApp {
     });
 
     this.dom.selectionDetailsElement.addEventListener('input', (event) => {
+      if (event.target.id === 'blockLogLimit') {
+        this.selectedLogLimit = Math.max(1, Number(event.target.value) || 1);
+        return;
+      }
+
       if (!event.target.closest('#topicPublishForm')) {
         return;
       }

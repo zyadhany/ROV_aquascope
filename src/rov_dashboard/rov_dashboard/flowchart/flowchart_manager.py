@@ -127,8 +127,8 @@ class FlowchartManager:
     def send_command(self, block_id: str, command: dict[str, Any]) -> dict[str, Any]:
         return self._get_block_or_raise(block_id).send_command(command)
 
-    def get_block_logs(self, block_id: str) -> dict[str, Any]:
-        return self._get_block_or_raise(block_id).get_logs()
+    def get_block_logs(self, block_id: str, limit: int | None = None) -> dict[str, Any]:
+        return self._get_block_or_raise(block_id).get_logs(limit=limit)
 
     def save_layout(self, layout_data: dict[str, Any]) -> dict[str, Any]:
         return save_layout(layout_data)

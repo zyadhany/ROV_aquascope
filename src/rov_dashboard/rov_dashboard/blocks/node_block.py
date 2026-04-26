@@ -25,7 +25,7 @@ class NodeBlock(BaseBlock):
         node_name = str(self.raw_config.get('ros_node', self.id)).strip()
         return self.ros_interface.get_node_info(node_name)
 
-    def get_logs(self) -> dict[str, Any]:
+    def get_logs(self, limit: int | None = None) -> dict[str, Any]:
         logs_config = self._dict_config('logs')
         source = str(logs_config.get('source', self.raw_config.get('ros_node', self.id))).strip()
-        return self.ros_interface.get_logs(source)
+        return self.ros_interface.get_logs(source, limit=limit)

@@ -338,6 +338,12 @@ textarea {
   font-size: 15px;
 }
 
+.hardware-description p {
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
 .data-box,
 .log-box {
   max-height: 220px;
@@ -377,6 +383,23 @@ textarea {
 .topic-publish-form {
   display: grid;
   gap: 9px;
+}
+
+.logs-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.logs-toolbar label {
+  display: grid;
+  gap: 5px;
+}
+
+.logs-toolbar label span {
+  color: var(--text-muted);
+  font-weight: 650;
 }
 
 .topic-publish-form label:not(.inline-toggle) {
@@ -419,22 +442,6 @@ textarea {
 .response-box[data-tone="error"] {
   background: #2a1111;
   color: var(--error);
-}
-
-.media-viewer {
-  display: grid;
-  gap: 8px;
-  min-height: 150px;
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
-  background: #090f1c;
-  color: var(--text-muted);
-  padding: 12px;
-}
-
-.media-viewer strong {
-  color: var(--text-main);
-  overflow-wrap: anywhere;
 }
 
 .services-list {
@@ -526,6 +533,10 @@ textarea {
   }
 
   .detail-row {
+    grid-template-columns: 1fr;
+  }
+
+  .logs-toolbar {
     grid-template-columns: 1fr;
   }
 

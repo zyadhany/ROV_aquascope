@@ -16,6 +16,13 @@ class FakeRosInterface:
             'status': self.status_by_node.get(node_name, 'not_found'),
         }
 
+    def get_logs(self, source: str, limit: int | None = None) -> dict[str, object]:
+        return {
+            'source': source,
+            'lines': ['one', 'two'][-limit:] if limit else ['one', 'two'],
+            'limit': limit,
+        }
+
 
 class FakeProcess:
     def __init__(self, pid: int = 12345) -> None:
@@ -30,26 +37,27 @@ class FakeProcess:
         return 0
 
 
-def configure_services(
+def configure_blocks(
     monkeypatch: pytest.MonkeyPatch,
-    services: list[dict[str, object]],
+    blocks: list[dict[str, object]],
 ) -> None:
     monkeypatch.setattr(
         node_manager_module,
-        'load_services_config',
-        lambda: {'services': services},
+        'load_blocks_config',
+        lambda: {'blocks': blocks, 'connections': []},
     )
 
 
 def test_node_manager_status_supports_alias(monkeypatch: pytest.MonkeyPatch) -> None:
-    configure_services(
+    configure_blocks(
         monkeypatch,
         [
             {
-                'id': 'depth_hold',
-                'node_name': '/hold_depth',
+                'id': '/nodes/depth_hold',
+                'type': 'nodes',
+                'ros_node': '/hold_depth',
+                'package': 'my_robot_sim',
                 'aliases': ['depth_hold_node'],
-                'start_command': 'ros2 run rov_control depth_hold',
             },
         ],
     )
@@ -65,13 +73,14 @@ def test_node_manager_status_supports_alias(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_node_manager_start_tracks_process(monkeypatch: pytest.MonkeyPatch) -> None:
-    configure_services(
+    configure_blocks(
         monkeypatch,
         [
             {
-                'id': 'depth_hold',
-                'node_name': '/hold_depth',
-                'start_command': 'ros2 run rov_control depth_hold',
+                'id': '/nodes/depth_hold',
+                'type': 'nodes',
+                'ros_node': '/hold_depth',
+                'package': 'my_robot_sim',
             },
         ],
     )
@@ -90,17 +99,18 @@ def test_node_manager_start_tracks_process(monkeypatch: pytest.MonkeyPatch) -> N
 
     assert result['success'] is True
     assert result['tracked'] is True
-    assert started_commands == [['ros2', 'run', 'rov_control', 'depth_hold']]
+    assert started_commands == [['ros2', 'run', 'my_robot_sim', 'hold_depth']]
 
 
 def test_node_manager_stop_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
-    configure_services(
+    configure_blocks(
         monkeypatch,
         [
             {
-                'id': 'depth_hold',
-                'node_name': '/hold_depth',
-                'start_command': 'ros2 run rov_control depth_hold',
+                'id': '/nodes/depth_hold',
+                'type': 'nodes',
+                'ros_node': '/hold_depth',
+                'package': 'my_robot_sim',
             },
         ],
     )
@@ -126,3 +136,30 @@ def test_node_manager_stop_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> Non
     assert first_stop['success'] is True
     assert second_stop['success'] is True
     assert len(kill_calls) == 1
+
+
+def test_node_manager_reads_logs_from_block_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_blocks(
+        monkeypatch,
+        [
+            {
+                'id': '/nodes/depth_hold',
+                'type': 'nodes',
+                'ros_node': '/hold_depth',
+                'package': 'my_robot_sim',
+                'logs': {
+                    'source': '/custom_log_source',
+                },
+            },
+        ],
+    )
+    manager = NodeManager(FakeRosInterface())
+
+    logs = manager.get_logs('depth_hold', limit=1)
+
+    assert logs['source'] == '/custom_log_source'
+    assert logs['lines'] == ['two']
+    assert logs['limit'] == 1
+    assert logs['block_id'] == '/nodes/depth_hold'

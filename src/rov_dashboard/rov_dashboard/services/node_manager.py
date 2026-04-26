@@ -9,7 +9,7 @@ import subprocess
 import threading
 from typing import Any
 
-from ..core.config_loader import load_services_config
+from ..core.config_loader import load_blocks_config
 from ..core.ros_interface import RosInterface
 
 
@@ -32,33 +32,65 @@ class NodeManager:
 
     def _node_entries(self) -> dict[str, dict[str, Any]]:
         entries: dict[str, dict[str, Any]] = {}
-        for service in load_services_config().get('services', []):
-            if not isinstance(service, dict):
+        for block in load_blocks_config().get('blocks', []):
+            if not isinstance(block, dict):
                 continue
 
-            service_id = str(service.get('id', '')).strip()
-            node_name = str(service.get('node_name', '')).strip()
-            start_command = str(service.get('start_command', '')).strip()
-            aliases = service.get('aliases', [])
+            block_type = str(block.get('type', '')).strip().lower()
+            if block_type not in {'node', 'nodes'}:
+                continue
 
-            if not service_id or not node_name or not start_command:
+            block_id = str(block.get('id', '')).strip()
+            node_name = str(block.get('ros_node', block_id)).strip()
+            package = str(block.get('package', '')).strip()
+            executable = str(block.get('executable', '')).strip()
+            if not executable:
+                executable = node_name.lstrip('/')
+            aliases = block.get('aliases', [])
+
+            if not block_id or not node_name:
                 continue
 
             if not isinstance(aliases, list):
                 aliases = []
 
-            service_copy = deepcopy(service)
-            service_copy['id'] = service_id
-            service_copy['node_name'] = node_name
-            service_copy['aliases'] = [str(alias).strip() for alias in aliases]
-            entries[service_id] = service_copy
+            block_copy = deepcopy(block)
+            block_copy['id'] = block_id
+            block_copy['block_id'] = block_id
+            block_copy['node_name'] = node_name
+            block_copy['package'] = package
+            block_copy['executable'] = executable
+            block_copy['aliases'] = [str(alias).strip() for alias in aliases]
+            block_copy['start_command'] = self._start_command(block_copy)
+            entries[block_id.lstrip('/')] = block_copy
 
         return entries
+
+    def _start_command(self, node_config: dict[str, Any]) -> str:
+        configured_command = str(node_config.get('start_command', '')).strip()
+        if configured_command:
+            return configured_command
+
+        package = str(node_config.get('package', '')).strip()
+        executable = str(node_config.get('executable', '')).strip()
+        if not package or not executable:
+            return ''
+
+        return f'ros2 run {package} {executable}'
 
     def _find_node_config(self, node_name: str) -> dict[str, Any]:
         normalized = self._normalize_node_ref(node_name)
         for entry in self._node_entries().values():
-            if entry['id'] == normalized:
+            if entry['id'].lstrip('/') == normalized:
+                return entry
+
+            if entry['id'].rstrip('/').split('/')[-1] == normalized:
+                return entry
+
+            if entry.get('block_id', '').lstrip('/') == normalized:
+                return entry
+
+            if entry.get('block_id', '').rstrip('/').split('/')[-1] == normalized:
                 return entry
 
             if str(entry.get('node_name', '')).lstrip('/') == normalized:
@@ -100,7 +132,11 @@ class NodeManager:
         return {
             'node': node_config['node_name'].lstrip('/'),
             'node_name': node_config['node_name'],
+            'block_id': node_config['block_id'],
             'service_id': node_config['id'],
+            'package': node_config.get('package', ''),
+            'executable': node_config.get('executable', ''),
+            'start_command': node_config.get('start_command', ''),
             'running': running,
             'status': 'running' if running else 'stopped',
             'tracked': tracked_running,
@@ -200,6 +236,18 @@ class NodeManager:
             'success': True,
             'message': 'Node stopped.',
         }
+
+    def get_logs(self, node_name: str, limit: int | None = None) -> dict[str, Any]:
+        node_config = self._find_node_config(node_name)
+        logs_config = node_config.get('logs', {})
+        if not isinstance(logs_config, dict):
+            logs_config = {}
+
+        source = str(logs_config.get('source', node_config['node_name'])).strip()
+        logs = self.ros_interface.get_logs(source, limit=limit)
+        logs['node_name'] = node_config['node_name']
+        logs['block_id'] = node_config['block_id']
+        return logs
 
     def shutdown(self) -> None:
         with self._lock:

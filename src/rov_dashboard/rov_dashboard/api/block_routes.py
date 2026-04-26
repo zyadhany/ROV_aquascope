@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, Query
 
 from .runtime import flowchart_manager as manager
 
@@ -58,9 +58,12 @@ def send_block_command(
 
 
 @router.get('/block/{block_id:path}/logs')
-def get_block_logs(block_id: str) -> dict[str, Any]:
+def get_block_logs(
+    block_id: str,
+    limit: int | None = Query(default=None, ge=1, le=1000),
+) -> dict[str, Any]:
     try:
-        return manager.get_block_logs(block_id)
+        return manager.get_block_logs(block_id, limit=limit)
     except KeyError as error:
         raise _not_found(error) from error
     except ValueError as error:

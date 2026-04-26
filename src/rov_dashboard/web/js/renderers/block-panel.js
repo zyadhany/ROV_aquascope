@@ -1,6 +1,8 @@
 import {
   escapeHtml,
   formatType,
+  isHardwareBlock,
+  isNodeBlock,
   isSimpleStdMessage,
   isTopicBlock,
   prettyJson,
@@ -69,11 +71,6 @@ function getValueEntries(snapshot) {
 
 function detailRows(block) {
   const rows = [
-    // ['Name', block.name],
-    // ['Type', formatType(block.type)],
-    // ['ID', block.id],
-    // ['Category', block.category],
-    // ['Enabled', block.enabled ? 'true' : 'false'],
     ['Description', block.description],
   ];
 
@@ -135,34 +132,6 @@ function renderControls(controls) {
     `;
   }).join('');
 }
-
-function renderMedia(block, state) {
-  if (!block || block.type !== 'camera') {
-    return '';
-  }
-
-  const media = state?.data?.media || block.media || {};
-  const rows = [
-    ['Source', media.topic || media.stream_url || 'Not configured'],
-    ['Status', media.status || (media.available ? 'configured' : 'not_configured')],
-    ['Message Type', media.message_type || ''],
-    ['Frequency Hz', media.frequency_hz === undefined ? '' : Number(media.frequency_hz || 0).toFixed(2)],
-    ['Last Frame', media.last_received_at || 'No frame received yet'],
-  ];
-
-  return `
-    <section class="detail-section">
-      <h3>Media</h3>
-      <div class="media-viewer">
-        <strong>${escapeHtml(media.message || 'Camera media source configured.')}</strong>
-        <div class="detail-rows compact-rows">
-          ${renderRows(rows.filter(([, value]) => value !== undefined && value !== null && value !== ''))}
-        </div>
-      </div>
-    </section>
-  `;
-}
-
 
 function renderCommandResponse(response) {
   if (!response) {
@@ -287,7 +256,7 @@ function renderTopicLiveData(snapshot) {
 }
 
 function renderStateData(snapshot) {
-  if (snapshot.selectedBlock?.type === 'node') {
+  if (isNodeBlock(snapshot.selectedBlock)) {
     return renderNodeData(snapshot);
   }
 
@@ -355,6 +324,36 @@ function renderNodeData(snapshot) {
     <section class="detail-section">
       <h3>Services</h3>
       <div data-node-field="servicesHtml">${renderEndpointList(services)}</div>
+    </section>
+  `;
+}
+
+function renderNodeLogs(snapshot) {
+  const logs = snapshot.selectedLogs;
+  const lines = Array.isArray(logs?.lines) ? logs.lines : [];
+  const logLines = lines.join('\n');
+  const limit = snapshot.selectedLogLimit || logs?.limit || 100;
+
+  return `
+    <section class="detail-section">
+      <h3>Logs</h3>
+      <div class="logs-toolbar">
+        <label for="blockLogLimit">
+          <span>Lines</span>
+          <input
+            id="blockLogLimit"
+            type="number"
+            min="1"
+            max="1000"
+            step="1"
+            value="${escapeHtml(limit)}"
+          >
+        </label>
+        <button id="blockLogsButton" type="button">Load Logs</button>
+      </div>
+      ${logLines
+        ? `<pre class="log-box">${escapeHtml(logLines)}</pre>`
+        : '<div class="subtle-text">No logs loaded yet.</div>'}
     </section>
   `;
 }
@@ -444,6 +443,36 @@ function renderTopicPublishResponse(response) {
     <div class="response-box" data-tone="${tone}">
       ${escapeHtml(response.message || 'Publish response received.')}
     </div>
+  `;
+}
+
+function renderHardwareDetails(container, snapshot) {
+  const block = snapshot.selectedBlock;
+  const renderKey = [
+    'hardware',
+    block.id,
+    block.name,
+    block.description,
+  ].join('::');
+
+  if (container.dataset.renderKey === renderKey) {
+    return;
+  }
+
+  container.className = 'details-card hardware-details-card';
+  container.dataset.renderKey = renderKey;
+  container.innerHTML = `
+    <div class="details-header">
+      <div>
+        <span class="type-chip">${escapeHtml(formatType(block.type))}</span>
+        <h2>${escapeHtml(block.name)}</h2>
+      </div>
+    </div>
+
+    <section class="detail-section hardware-description">
+      <h3>What this hardware does</h3>
+      <p>${escapeHtml(block.description || 'No description configured.')}</p>
+    </section>
   `;
 }
 
@@ -550,6 +579,9 @@ function getRenderKey(snapshot, controls) {
     snapshot.selectedBlock?.type || '',
     isTopicBlock(snapshot.selectedBlock) ? 'topic' : 'generic',
     snapshot.topicPublishDraft.advanced ? 'advanced' : 'simple',
+    snapshot.selectedLogLimit || '',
+    snapshot.selectedLogs?.last_update || '',
+    Array.isArray(snapshot.selectedLogs?.lines) ? snapshot.selectedLogs.lines.length : '',
     getDataSignature(snapshot),
     getControlsSignature(controls),
   ].join('::');
@@ -654,10 +686,6 @@ function updateBlockDetails(container, snapshot) {
     );
   }
 
-  setElementHtml(
-    container.querySelector('[data-detail-media]'),
-    renderMedia(snapshot.selectedBlock, snapshot.selectedState),
-  );
 }
 
 export function renderEmptyDetails(container, message = 'No block selected.') {
@@ -669,6 +697,11 @@ export function renderEmptyDetails(container, message = 'No block selected.') {
 export function renderBlockDetails(container, snapshot) {
   if (!snapshot.selectedBlock) {
     renderEmptyDetails(container);
+    return;
+  }
+
+  if (isHardwareBlock(snapshot.selectedBlock)) {
+    renderHardwareDetails(container, snapshot);
     return;
   }
 
@@ -703,9 +736,7 @@ export function renderBlockDetails(container, snapshot) {
       ${renderDataSection(snapshot)}
     </div>
 
-    <div data-detail-media>
-      ${renderMedia(snapshot.selectedBlock, snapshot.selectedState)}
-    </div>
+    ${isNodeBlock(snapshot.selectedBlock) ? renderNodeLogs(snapshot) : ''}
 
     ${topicBlock ? renderTopicPublishForm(snapshot) : renderControlsSection(controls, snapshot.commandResponse)}
   `;

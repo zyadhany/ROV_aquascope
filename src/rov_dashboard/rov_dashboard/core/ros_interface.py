@@ -632,13 +632,17 @@ class RosInterface:
             'message': 'Command published to ROS 2 topic.',
         }
 
-    def get_logs(self, source: str) -> dict[str, Any]:
+    def get_logs(self, source: str, limit: int | None = None) -> dict[str, Any]:
         with self._lock:
             lines = list(self._logs)
+
+        if limit is not None and limit > 0:
+            lines = lines[-limit:]
 
         return {
             'source': source,
             'lines': lines,
+            'limit': limit,
             'last_update': self._timestamp(),
         }
 

@@ -308,7 +308,7 @@ class BaseBlock:
 
         return self._publish_configured_command(command)
 
-    def get_logs(self) -> dict[str, Any]:
+    def get_logs(self, limit: int | None = None) -> dict[str, Any]:
         logs_config = self._dict_config('logs')
         source = str(logs_config.get('source', self.id)).strip()
-        return self.ros_interface.get_logs(source)
+        return self.ros_interface.get_logs(source, limit=limit)

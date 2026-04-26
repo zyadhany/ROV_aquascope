@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from .runtime import node_manager as manager
 
@@ -48,6 +48,19 @@ def start_node(node_name: str) -> dict[str, Any]:
 def stop_node(node_name: str) -> dict[str, Any]:
     try:
         return manager.stop_node(node_name)
+    except KeyError as error:
+        raise _not_found(error) from error
+    except ValueError as error:
+        raise _bad_request(error) from error
+
+
+@router.get('/nodes/{node_name:path}/logs')
+def get_node_logs(
+    node_name: str,
+    limit: int | None = Query(default=None, ge=1, le=1000),
+) -> dict[str, Any]:
+    try:
+        return manager.get_logs(node_name, limit=limit)
     except KeyError as error:
         raise _not_found(error) from error
     except ValueError as error:

@@ -31,6 +31,14 @@ export function isTopicBlock(block) {
   return block?.type === 'topic';
 }
 
+export function isNodeBlock(block) {
+  return ['node', 'nodes'].includes(block?.type);
+}
+
+export function isHardwareBlock(block) {
+  return block?.type === 'hardware';
+}
+
 export function isSimpleStdMessage(messageType) {
   return [
     'std_msgs/Float64',

@@ -10,8 +10,8 @@ class FakeRosInterface:
     def publish_command(self, *args: object) -> dict[str, object]:
         return {'success': True}
 
-    def get_logs(self, source: str) -> dict[str, object]:
-        return {'source': source, 'lines': []}
+    def get_logs(self, source: str, limit: int | None = None) -> dict[str, object]:
+        return {'source': source, 'lines': [], 'limit': limit}
 
     def watch_topic(self, topic: str, message_type: str = '') -> dict[str, object]:
         return {
@@ -44,9 +44,9 @@ def test_flowchart_manager_reuses_cached_blocks(monkeypatch: pytest.MonkeyPatch)
     block_config = {
         'blocks': [
             {
-                'id': '/thruster_1',
-                'type': 'thruster',
-                'name': 'Thruster 1',
+                'id': '/hardware_1',
+                'type': 'hardware',
+                'name': 'Hardware 1',
             },
         ],
         'connections': [],
@@ -63,13 +63,13 @@ def test_flowchart_manager_reuses_cached_blocks(monkeypatch: pytest.MonkeyPatch)
 
     manager = FlowchartManager(FakeRosInterface())
 
-    first_block = manager.get_block('/thruster_1')
-    cached_block = manager._get_blocks_by_id()['/thruster_1']
-    second_state = manager.get_block_state('/thruster_1')
+    first_block = manager.get_block('/hardware_1')
+    cached_block = manager._get_blocks_by_id()['/hardware_1']
+    second_state = manager.get_block_state('/hardware_1')
 
-    assert first_block['id'] == '/thruster_1'
-    assert second_state['id'] == '/thruster_1'
-    assert manager._get_blocks_by_id()['/thruster_1'] is cached_block
+    assert first_block['id'] == '/hardware_1'
+    assert second_state['id'] == '/hardware_1'
+    assert manager._get_blocks_by_id()['/hardware_1'] is cached_block
 
 
 def test_flowchart_manager_rebuilds_cache_after_config_change(
@@ -80,7 +80,7 @@ def test_flowchart_manager_rebuilds_cache_after_config_change(
             'blocks': [
                 {
                     'id': '/block_a',
-                    'type': 'service',
+                    'type': 'hardware',
                     'name': 'Block A',
                 },
             ],
@@ -106,7 +106,7 @@ def test_flowchart_manager_rebuilds_cache_after_config_change(
         'blocks': [
             {
                 'id': '/block_b',
-                'type': 'service',
+                'type': 'hardware',
                 'name': 'Block B',
             },
         ],
@@ -127,16 +127,11 @@ def test_flowchart_manager_returns_block_data(
     block_config = {
         'blocks': [
             {
-                'id': '/sensor',
-                'type': 'sensor',
-                'name': 'Sensor',
-                'data_sources': [
-                    {
-                        'name': 'Depth',
-                        'topic': '/rov/depth/current',
-                        'message_type': 'std_msgs/Float64',
-                    },
-                ],
+                'id': '/topics/depth/current',
+                'type': 'topic',
+                'name': 'Current Depth',
+                'ros_topic': '/rov/depth/current',
+                'message_type': 'std_msgs/Float64',
             },
         ],
         'connections': [],
@@ -152,6 +147,40 @@ def test_flowchart_manager_returns_block_data(
     )
 
     manager = FlowchartManager(FakeRosInterface())
-    data = manager.get_block_data('/sensor')
+    data = manager.get_block_data('/topics/depth/current')
 
-    assert data['values']['Depth']['topic'] == '/rov/depth/current'
+    assert data['ros_topic'] == '/rov/depth/current'
+    assert data['latest_message']['data'] == {'data': 1.25}
+
+
+def test_hardware_block_is_descriptive_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    block_config = {
+        'blocks': [
+            {
+                'id': '/hardware/pump',
+                'type': 'hardware',
+                'name': 'Pump',
+                'description': 'Physical pump controlled through ROS topics.',
+            },
+        ],
+        'connections': [],
+    }
+
+    def fake_load_blocks_config() -> dict[str, object]:
+        return block_config
+
+    monkeypatch.setattr(
+        flowchart_manager_module,
+        'load_blocks_config',
+        fake_load_blocks_config,
+    )
+
+    manager = FlowchartManager(FakeRosInterface())
+    state = manager.get_block_state('/hardware/pump')
+
+    assert state['status'] == 'descriptive'
+    assert state['controls'] == []
+    assert state['data']['interactive'] is False
+    assert state['data']['description'] == 'Physical pump controlled through ROS topics.'

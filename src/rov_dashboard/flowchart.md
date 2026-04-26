@@ -32,11 +32,13 @@ type: hardware
 
 name: MCU Gateway
 id: nodes/mcu_gateway
-type: node
+type: nodes
+package: my_robot_sim
 
 name: Camera Streamer
 id: nodes/camera_streamer
-type: node
+type: nodes
+package: my_robot_sim
 
 name: Camera Image
 id: topics/camera/image
@@ -85,15 +87,18 @@ ros2_topic: /rov/mcu/cmd/light
 
 name: Depth Controller
 id: nodes/depth_controller
-type: node
+type: nodes
+package: my_robot_sim
 
 name: ROV Controller
 id: nodes/rov_controller
-type: node
+type: nodes
+package: my_robot_sim
 
 name: Keyboard Controller
 id: nodes/keyboard_controller
-type: node
+type: nodes
+package: my_robot_sim
 
 name: Control Command
 id: topics/control/command
@@ -102,7 +107,8 @@ ros2_topic: /rov/controller/cmd
 
 name: Mobile App Controller
 id: nodes/mobile_app_controller
-type: node
+type: nodes
+package: my_robot_sim
 
 
 connections:
