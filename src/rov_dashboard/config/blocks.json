@@ -3,71 +3,69 @@
     {
       "id": "/hardware/microcontroller",
       "name": "Microcontroller",
-      "type": "hardware",
+      "type": "interface",
       "category": "Hardware",
       "description": "Main microcontroller connected to the real ROV hardware. Receives actuator commands from the MCU Gateway over serial and sends sensor data back."
     },
     {
       "id": "/hardware/actuators/left_thruster",
       "name": "Left Thruster",
-      "type": "hardware",
+      "type": "thruster",
       "category": "Actuators",
       "description": "Left physical thruster controlled by the microcontroller."
     },
     {
       "id": "/hardware/actuators/right_thruster",
       "name": "Right Thruster",
-      "type": "hardware",
+      "type": "thruster",
       "category": "Actuators",
       "description": "Right physical thruster controlled by the microcontroller."
     },
     {
       "id": "/hardware/actuators/pump",
       "name": "Pump",
-      "type": "hardware",
+      "type": "pump",
       "category": "Actuators",
       "description": "Pump actuator controlled by the microcontroller. Used by the depth controller for vertical/depth control."
     },
     {
       "id": "/hardware/actuators/light",
       "name": "Light",
-      "type": "hardware",
+      "type": "light",
       "category": "Actuators",
       "description": "ROV light controlled by the microcontroller."
     },
     {
       "id": "/hardware/sensors/camera",
       "name": "Camera",
-      "type": "hardware",
+      "type": "camera",
       "category": "Sensors",
       "description": "Camera hardware. It is handled by the Camera Streamer node, not through the microcontroller serial connection."
     },
     {
       "id": "/hardware/sensors/imu",
       "name": "IMU",
-      "type": "hardware",
+      "type": "sensor",
       "category": "Sensors",
       "description": "IMU sensor connected to the microcontroller."
     },
     {
       "id": "/hardware/sensors/pressure_sensor",
       "name": "Pressure Sensor",
-      "type": "hardware",
+      "type": "sensor",
       "category": "Sensors",
       "description": "Pressure sensor connected to the microcontroller. Used to produce pressure data and current depth."
     },
     {
       "id": "/nodes/mcu_gateway",
       "name": "MCU Gateway",
-      "type": "nodes",
+      "type": "node",
       "category": "Nodes",
       "description": "Backend/ROS node that communicates with the microcontroller over serial. It receives ROS command topics and publishes processed sensor data.",
       "ros_node": "/mcu_gateway",
-      "package": "my_robot_sim",
       "logs": {
         "source": "/mcu_gateway",
-        "level": "info",
-        "max_lines": 100
+        "level": "info"
       }
     },
     {
@@ -103,15 +101,13 @@
     {
       "id": "/nodes/camera_streamer",
       "name": "Camera Streamer",
-      "type": "nodes",
+      "type": "node",
       "category": "Nodes",
       "description": "Node that reads the camera stream and publishes camera frames/images without loading the microcontroller serial connection.",
       "ros_node": "/camera_streamer",
-      "package": "my_robot_sim",
       "logs": {
         "source": "/camera_streamer",
-        "level": "info",
-        "max_lines": 100
+        "level": "info"
       }
     },
     {
@@ -252,43 +248,37 @@
     {
       "id": "/nodes/depth_controller",
       "name": "Depth Controller",
-      "type": "nodes",
+      "type": "node",
       "category": "Control Nodes",
       "description": "Controller node that subscribes to current depth and target depth, publishes depth error, and commands the pump.",
       "ros_node": "/depth_controller",
-      "package": "my_robot_sim",
       "logs": {
         "source": "/depth_controller",
-        "level": "info",
-        "max_lines": 100
+        "level": "info"
       }
     },
     {
       "id": "/nodes/rov_controller",
       "name": "ROV Controller",
-      "type": "nodes",
+      "type": "node",
       "category": "Control Nodes",
       "description": "Main control node that converts high-level control commands into actuator commands and target depth.",
       "ros_node": "/rov_controller",
-      "package": "my_robot_sim",
       "logs": {
         "source": "/rov_controller",
-        "level": "info",
-        "max_lines": 100
+        "level": "info"
       }
     },
     {
       "id": "/nodes/keyboard_controller",
       "name": "Keyboard Controller",
-      "type": "nodes",
+      "type": "node",
       "category": "Input Controllers",
       "description": "Keyboard input node that publishes high-level control commands.",
       "ros_node": "/keyboard_controller",
-      "package": "my_robot_sim",
       "logs": {
         "source": "/keyboard_controller",
-        "level": "info",
-        "max_lines": 100
+        "level": "info"
       }
     },
     {
@@ -309,15 +299,13 @@
     {
       "id": "/nodes/mobile_app_controller",
       "name": "Mobile App Controller",
-      "type": "nodes",
+      "type": "node",
       "category": "Input Controllers",
       "description": "Mobile app input node that publishes high-level control commands.",
       "ros_node": "/mobile_app_controller",
-      "package": "my_robot_sim",
       "logs": {
         "source": "/mobile_app_controller",
-        "level": "info",
-        "max_lines": 100
+        "level": "info"
       }
     }
   ],

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import pytest
 
+import rov_dashboard.flowchart.block_manager as block_manager_module
+from rov_dashboard.flowchart.block_manager import BlockManager
 import rov_dashboard.services.node_manager as node_manager_module
 from rov_dashboard.services.node_manager import NodeManager
 
@@ -9,6 +11,9 @@ from rov_dashboard.services.node_manager import NodeManager
 class FakeRosInterface:
     def __init__(self) -> None:
         self.status_by_node: dict[str, str] = {}
+
+    def set_rosout_log_handler(self, handler: object) -> None:
+        self.rosout_log_handler = handler
 
     def get_node_info(self, node_name: str) -> dict[str, object]:
         return {
@@ -42,10 +47,15 @@ def configure_blocks(
     blocks: list[dict[str, object]],
 ) -> None:
     monkeypatch.setattr(
-        node_manager_module,
+        block_manager_module,
         'load_blocks_config',
         lambda: {'blocks': blocks, 'connections': []},
     )
+
+
+def build_node_manager(ros_interface: FakeRosInterface) -> NodeManager:
+    block_manager = BlockManager(ros_interface)
+    return NodeManager(ros_interface, block_manager)
 
 
 def test_node_manager_status_supports_alias(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -63,7 +73,7 @@ def test_node_manager_status_supports_alias(monkeypatch: pytest.MonkeyPatch) -> 
     )
     ros_interface = FakeRosInterface()
     ros_interface.status_by_node['/hold_depth'] = 'active'
-    manager = NodeManager(ros_interface)
+    manager = build_node_manager(ros_interface)
 
     status = manager.get_status('depth_hold_node')
 
@@ -85,7 +95,7 @@ def test_node_manager_start_tracks_process(monkeypatch: pytest.MonkeyPatch) -> N
         ],
     )
     ros_interface = FakeRosInterface()
-    manager = NodeManager(ros_interface)
+    manager = build_node_manager(ros_interface)
     fake_process = FakeProcess()
     started_commands: list[list[str]] = []
 
@@ -115,7 +125,7 @@ def test_node_manager_stop_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> Non
         ],
     )
     ros_interface = FakeRosInterface()
-    manager = NodeManager(ros_interface)
+    manager = build_node_manager(ros_interface)
     fake_process = FakeProcess()
     kill_calls: list[tuple[int, int]] = []
 
@@ -155,11 +165,31 @@ def test_node_manager_reads_logs_from_block_config(
             },
         ],
     )
-    manager = NodeManager(FakeRosInterface())
+    manager = build_node_manager(FakeRosInterface())
+    manager.block_manager.route_rosout_log({
+        'timestamp': '2026-04-27T00:00:00+00:00',
+        'level': 'INFO',
+        'name': 'custom_log_source',
+        'message': 'one',
+        'file': '',
+        'function': '',
+        'line': 0,
+    })
+    manager.block_manager.route_rosout_log({
+        'timestamp': '2026-04-27T00:00:01+00:00',
+        'level': 'INFO',
+        'name': 'custom_log_source',
+        'message': 'two',
+        'file': '',
+        'function': '',
+        'line': 0,
+    })
 
     logs = manager.get_logs('depth_hold', limit=1)
 
     assert logs['source'] == '/custom_log_source'
-    assert logs['lines'] == ['two']
+    assert logs['lines'] == [
+        '2026-04-27T00:00:01+00:00 [INFO] [custom_log_source] two',
+    ]
     assert logs['limit'] == 1
     assert logs['block_id'] == '/nodes/depth_hold'

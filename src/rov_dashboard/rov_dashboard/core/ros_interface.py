@@ -6,6 +6,7 @@ import threading
 import time
 from typing import Any
 
+from rcl_interfaces.msg import Log
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
@@ -38,11 +39,18 @@ class RosInterface:
         self._publishers: dict[str, Any] = {}
         self._sample_times: dict[str, deque[float]] = {}
         self._logs: deque[str] = deque(maxlen=200)
+        self._rosout_log_handler: Any = None
 
         if not rclpy.ok():
             rclpy.init(args=None)
 
         self.node = Node('dashboard_ros_interface')
+        self._rosout_subscription = self.node.create_subscription(
+            Log,
+            '/rosout',
+            self._rosout_callback,
+            100,
+        )
 
         self.executor = MultiThreadedExecutor()
         self.executor.add_node(self.node)
@@ -67,6 +75,71 @@ class RosInterface:
             self.node.get_logger().info(message)
         except Exception:
             pass
+
+    def set_rosout_log_handler(self, handler: Any) -> None:
+        self._rosout_log_handler = handler
+
+    def _rosout_callback(self, msg: Log) -> None:
+        entry = {
+            'timestamp': self._stamp_to_iso(msg.stamp),
+            'level': self._log_level_name(msg.level),
+            'name': str(msg.name),
+            'message': str(msg.msg),
+            'file': str(msg.file),
+            'function': str(msg.function),
+            'line': int(msg.line),
+        }
+
+        handler = self._rosout_log_handler
+        if handler is None:
+            return
+
+        try:
+            handler(entry)
+        except Exception as exc:
+            self._add_log(f'Failed to route /rosout log: {exc}')
+
+    def _stamp_to_iso(self, stamp: Any) -> str:
+        seconds = int(getattr(stamp, 'sec', 0) or 0)
+        nanoseconds = int(getattr(stamp, 'nanosec', 0) or 0)
+
+        if seconds <= 0:
+            return self._timestamp()
+
+        return datetime.fromtimestamp(
+            seconds + (nanoseconds / 1_000_000_000),
+            timezone.utc,
+        ).isoformat()
+
+    def _log_level_name(self, level: int) -> str:
+        return {
+            int(Log.DEBUG): 'DEBUG',
+            int(Log.INFO): 'INFO',
+            int(Log.WARN): 'WARN',
+            int(Log.ERROR): 'ERROR',
+            int(Log.FATAL): 'FATAL',
+        }.get(int(level), str(level))
+
+    def _normalize_log_source(self, source: str) -> str:
+        return str(source or '').strip().strip('/')
+
+    def _format_rosout_line(self, entry: dict[str, Any]) -> str:
+        location = ''
+        if entry.get('file') and entry.get('line'):
+            location = f' ({entry["file"]}:{entry["line"]})'
+
+        timestamp = entry.get('timestamp', '')
+        level = entry.get('level', '')
+        name = entry.get('name', '')
+        message = entry.get('message', '')
+
+        return (
+            f'{timestamp} '
+            f'[{level}] '
+            f'[{name}] '
+            f'{message}'
+            f'{location}'
+        ).strip()
 
     def _normalize_topic_name(self, topic_name: str) -> str:
         topic_name = str(topic_name).strip()
@@ -634,7 +707,12 @@ class RosInterface:
 
     def get_logs(self, source: str, limit: int | None = None) -> dict[str, Any]:
         with self._lock:
-            lines = list(self._logs)
+            internal_lines = list(self._logs)
+
+        normalized_source = self._normalize_log_source(source)
+        lines = []
+        if not normalized_source or normalized_source == self.node.get_name():
+            lines = internal_lines
 
         if limit is not None and limit > 0:
             lines = lines[-limit:]
@@ -642,6 +720,8 @@ class RosInterface:
         return {
             'source': source,
             'lines': lines,
+            'available': len(lines),
+            'source_type': 'internal',
             'limit': limit,
             'last_update': self._timestamp(),
         }

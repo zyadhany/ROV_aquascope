@@ -386,20 +386,59 @@ textarea {
 }
 
 .logs-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-start;
   margin-bottom: 8px;
 }
 
 .logs-toolbar label {
-  display: grid;
-  gap: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .logs-toolbar label span {
   color: var(--text-muted);
+  font-size: 12px;
   font-weight: 650;
+}
+
+.logs-toolbar input {
+  width: 72px;
+  min-height: 26px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.logs-live-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.logs-live-button[data-live-state="on"] {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.12);
+  color: #bbf7d0;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--text-muted);
+}
+
+.logs-live-button[data-live-state="on"] .live-dot {
+  background: var(--success);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16);
 }
 
 .topic-publish-form label:not(.inline-toggle) {

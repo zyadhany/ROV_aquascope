@@ -7,6 +7,7 @@ import {
   cloneValue,
   formatType,
   isHardwareBlock,
+  isNodeBlock,
   isTopicBlock,
   mergedFlowchart,
   parsePublishValue,
@@ -21,7 +22,8 @@ export class DashboardApp {
     this.selectedBlock = null;
     this.selectedState = null;
     this.selectedLogs = null;
-    this.selectedLogLimit = 100;
+    this.selectedLogLimit = 5;
+    this.selectedLogsLive = false;
     this.selectedTopicData = null;
     this.commandResponse = null;
     this.topicPublishResponse = null;
@@ -31,6 +33,8 @@ export class DashboardApp {
     this.refreshTimer = null;
     this.topicPollTimer = null;
     this.topicPollInFlight = false;
+    this.logPollTimer = null;
+    this.logPollInFlight = false;
     this.topicDataStatus = 'idle';
     this.topicDataError = '';
     this.activePanel = 'block';
@@ -51,6 +55,7 @@ export class DashboardApp {
     this.dom.blockPanel.classList.toggle('active', panelName === 'block');
     this.dom.servicesPanel.classList.toggle('active', panelName === 'services');
     this.syncTopicPolling();
+    this.syncLogPolling();
   }
 
   setSaveStatus(message, tone = 'neutral') {
@@ -106,8 +111,12 @@ export class DashboardApp {
     const nodes = this.flowchartState.blocks.map((block, index) => ({
       data: {
         ...block,
-        label: `${block.name}\n${formatType(block.type)}`,
+        label: isTopicBlock(block) ? block.name : `${block.name}\n${formatType(block.type)}`,
         color: this.blockColor(block.type),
+        shape: isTopicBlock(block) ? 'ellipse' : 'round-rectangle',
+        width: isTopicBlock(block) ? 108 : 168,
+        height: isTopicBlock(block) ? 108 : 62,
+        textMaxWidth: isTopicBlock(block) ? 84 : 148,
       },
       position: this.flowchartState.layout.positions[block.id] || this.fallbackPosition(index),
     }));
@@ -194,14 +203,14 @@ export class DashboardApp {
           'color': '#f8fafc',
           'font-size': this.flowchartState.config.font_sizes.block_title,
           'font-weight': 700,
-          'height': 62,
+          'height': 'data(height)',
           'label': 'data(label)',
-          'shape': 'round-rectangle',
+          'shape': 'data(shape)',
           'text-halign': 'center',
-          'text-max-width': 148,
+          'text-max-width': 'data(textMaxWidth)',
           'text-valign': 'center',
           'text-wrap': 'wrap',
-          'width': 168,
+          'width': 'data(width)',
         },
       },
       {
@@ -259,6 +268,7 @@ export class DashboardApp {
       selectedState: this.selectedState,
       selectedLogs: this.selectedLogs,
       selectedLogLimit: this.selectedLogLimit,
+      selectedLogsLive: this.selectedLogsLive,
       selectedTopicData: this.selectedTopicData,
       commandResponse: this.commandResponse,
       topicPublishResponse: this.topicPublishResponse,
@@ -302,10 +312,25 @@ export class DashboardApp {
     this.topicPollInFlight = false;
   }
 
+  stopLogPolling() {
+    if (this.logPollTimer) {
+      window.clearInterval(this.logPollTimer);
+      this.logPollTimer = null;
+    }
+    this.logPollInFlight = false;
+  }
+
   shouldPollSelectedTopic() {
     return this.activePanel === 'block'
       && this.selectedBlockId
       && isTopicBlock(this.selectedBlock);
+  }
+
+  shouldPollSelectedLogs() {
+    return this.activePanel === 'block'
+      && this.selectedBlockId
+      && this.selectedLogsLive
+      && isNodeBlock(this.selectedBlock);
   }
 
   syncTopicPolling() {
@@ -322,6 +347,23 @@ export class DashboardApp {
     this.topicPollTimer = window.setInterval(
       () => this.refreshSelectedTopicData(),
       400,
+    );
+  }
+
+  syncLogPolling() {
+    if (!this.shouldPollSelectedLogs()) {
+      this.stopLogPolling();
+      return;
+    }
+
+    if (this.logPollTimer) {
+      return;
+    }
+
+    this.loadSelectedLogs();
+    this.logPollTimer = window.setInterval(
+      () => this.loadSelectedLogs(),
+      1000,
     );
   }
 
@@ -367,10 +409,12 @@ export class DashboardApp {
 
   async fetchSelectedBlock(blockId) {
     this.stopTopicPolling();
+    this.stopLogPolling();
     this.selectedBlockId = blockId;
     this.selectedBlock = null;
     this.selectedState = null;
     this.selectedLogs = null;
+    this.selectedLogsLive = false;
     this.selectedTopicData = null;
     this.commandResponse = null;
     this.topicPublishResponse = null;
@@ -406,6 +450,9 @@ export class DashboardApp {
       this.resetTopicPublishDraft(this.selectedBlock);
       this.topicDataStatus = 'loading';
       this.syncTopicPolling();
+    } else if (isNodeBlock(this.selectedBlock)) {
+      this.selectedLogsLive = true;
+      this.syncLogPolling();
     }
     this.renderBlockDetails();
     this.updateStatusBar();
@@ -528,19 +575,32 @@ export class DashboardApp {
   }
 
   async loadSelectedLogs() {
-    if (!this.selectedBlockId) {
+    if (!this.selectedBlockId || this.logPollInFlight) {
       return;
     }
 
+    const blockId = this.selectedBlockId;
     const limit = Math.max(1, Number(this.selectedLogLimit) || 100);
-    const response = await fetch(`${blockApiPath(this.selectedBlockId)}/logs?limit=${limit}`, {
-      cache: 'no-store',
-    });
-    if (!response.ok) {
-      return;
+    this.logPollInFlight = true;
+
+    try {
+      const response = await fetch(`${blockApiPath(blockId)}/logs?limit=${limit}`, {
+        cache: 'no-store',
+      });
+
+      if (this.selectedBlockId !== blockId) {
+        return;
+      }
+
+      if (!response.ok) {
+        return;
+      }
+
+      this.selectedLogs = await response.json();
+      this.renderBlockDetails();
+    } finally {
+      this.logPollInFlight = false;
     }
-    this.selectedLogs = await response.json();
-    this.renderBlockDetails();
   }
 
   async loadServices() {
@@ -668,10 +728,12 @@ export class DashboardApp {
 
   clearSelection() {
     this.stopTopicPolling();
+    this.stopLogPolling();
     this.selectedBlockId = null;
     this.selectedBlock = null;
     this.selectedState = null;
     this.selectedLogs = null;
+    this.selectedLogsLive = false;
     this.selectedTopicData = null;
     this.commandResponse = null;
     this.topicPublishResponse = null;
@@ -733,7 +795,9 @@ export class DashboardApp {
       }
 
       if (event.target.closest('#blockLogsButton')) {
+        this.selectedLogsLive = true;
         await this.loadSelectedLogs();
+        this.syncLogPolling();
       }
     });
 
@@ -749,6 +813,9 @@ export class DashboardApp {
     this.dom.selectionDetailsElement.addEventListener('input', (event) => {
       if (event.target.id === 'blockLogLimit') {
         this.selectedLogLimit = Math.max(1, Number(event.target.value) || 1);
+        if (this.shouldPollSelectedLogs()) {
+          this.loadSelectedLogs();
+        }
         return;
       }
 

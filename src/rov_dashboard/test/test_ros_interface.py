@@ -6,6 +6,7 @@ import time
 
 from geometry_msgs.msg import Twist
 import pytest
+from rcl_interfaces.msg import Log
 from rov_dashboard.core.ros_interface import RosInterface
 from std_msgs.msg import Bool, Float64, Int32
 
@@ -54,6 +55,8 @@ def build_interface(node: FakeNode) -> RosInterface:
     interface._subscriptions = {'/test/topic': object()}
     interface._topic_types = {'/test/topic': 'std_msgs/msg/Float64'}
     interface._sample_times = {'/test/topic': deque(maxlen=50)}
+    interface._logs = deque(maxlen=200)
+    interface._rosout_log_handler = None
     return interface
 
 
@@ -157,3 +160,30 @@ def test_topic_info_marks_old_latest_message_as_stale() -> None:
     assert info['is_stale'] is True
     assert info['message_age_seconds'] > RosInterface.DEFAULT_STALE_AFTER_SECONDS
     assert latest['is_stale'] is True
+
+
+def test_rosout_callback_routes_structured_entries_to_handler() -> None:
+    interface = build_interface(FakeNode())
+    entries = []
+    interface.set_rosout_log_handler(entries.append)
+    msg = Log()
+    msg.stamp.sec = 1
+    msg.stamp.nanosec = 500_000_000
+    msg.level = Log.WARN
+    msg.name = 'rov_controller'
+    msg.msg = 'Command timeout'
+    msg.file = 'controller.py'
+    msg.function = 'tick'
+    msg.line = 9
+
+    interface._rosout_callback(msg)
+
+    assert entries == [{
+        'timestamp': '1970-01-01T00:00:01.500000+00:00',
+        'level': 'WARN',
+        'name': 'rov_controller',
+        'message': 'Command timeout',
+        'file': 'controller.py',
+        'function': 'tick',
+        'line': 9,
+    }]

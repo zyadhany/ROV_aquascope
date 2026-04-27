@@ -9,15 +9,20 @@ import subprocess
 import threading
 from typing import Any
 
-from ..core.config_loader import load_blocks_config
 from ..core.ros_interface import RosInterface
+from ..flowchart.block_manager import BlockManager
 
 
 class NodeManager:
     """Manage dashboard-started ROS processes from configured node entries."""
 
-    def __init__(self, ros_interface: RosInterface | None = None) -> None:
+    def __init__(
+        self,
+        ros_interface: RosInterface | None = None,
+        block_manager: BlockManager | None = None,
+    ) -> None:
         self.ros_interface = ros_interface or RosInterface()
+        self.block_manager = block_manager or BlockManager(self.ros_interface)
         self._lock = threading.RLock()
         self._processes: dict[str, subprocess.Popen[Any]] = {}
 
@@ -32,21 +37,16 @@ class NodeManager:
 
     def _node_entries(self) -> dict[str, dict[str, Any]]:
         entries: dict[str, dict[str, Any]] = {}
-        for block in load_blocks_config().get('blocks', []):
-            if not isinstance(block, dict):
-                continue
+        for block in self.block_manager.list_node_blocks():
+            block_config = block.to_dict()
 
-            block_type = str(block.get('type', '')).strip().lower()
-            if block_type not in {'node', 'nodes'}:
-                continue
-
-            block_id = str(block.get('id', '')).strip()
-            node_name = str(block.get('ros_node', block_id)).strip()
-            package = str(block.get('package', '')).strip()
-            executable = str(block.get('executable', '')).strip()
+            block_id = str(block_config.get('id', '')).strip()
+            node_name = str(block_config.get('ros_node', block_id)).strip()
+            package = str(block_config.get('package', '')).strip()
+            executable = str(block_config.get('executable', '')).strip()
             if not executable:
                 executable = node_name.lstrip('/')
-            aliases = block.get('aliases', [])
+            aliases = block_config.get('aliases', [])
 
             if not block_id or not node_name:
                 continue
@@ -54,7 +54,7 @@ class NodeManager:
             if not isinstance(aliases, list):
                 aliases = []
 
-            block_copy = deepcopy(block)
+            block_copy = deepcopy(block_config)
             block_copy['id'] = block_id
             block_copy['block_id'] = block_id
             block_copy['node_name'] = node_name
@@ -239,12 +239,8 @@ class NodeManager:
 
     def get_logs(self, node_name: str, limit: int | None = None) -> dict[str, Any]:
         node_config = self._find_node_config(node_name)
-        logs_config = node_config.get('logs', {})
-        if not isinstance(logs_config, dict):
-            logs_config = {}
-
-        source = str(logs_config.get('source', node_config['node_name'])).strip()
-        logs = self.ros_interface.get_logs(source, limit=limit)
+        block = self.block_manager.get_block(node_config['block_id'])
+        logs = block.get_logs(limit=limit)
         logs['node_name'] = node_config['node_name']
         logs['block_id'] = node_config['block_id']
         return logs

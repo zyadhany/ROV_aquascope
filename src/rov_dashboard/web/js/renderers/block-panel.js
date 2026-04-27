@@ -304,26 +304,10 @@ function renderNodeData(snapshot) {
       <h3>ROS Node</h3>
       <div class="detail-rows compact-rows">
         ${renderFieldRow('Status', 'data-node-field', 'status', data.status || snapshot.selectedState?.status || 'unknown')}
-        ${renderFieldRow('Namespace', 'data-node-field', 'namespace', data.node_namespace || '')}
         ${renderFieldRow('Publishers', 'data-node-field', 'publishersCount', String(publishers.length))}
         ${renderFieldRow('Subscribers', 'data-node-field', 'subscribersCount', String(subscribers.length))}
         ${renderFieldRow('Services', 'data-node-field', 'servicesCount', String(services.length))}
       </div>
-    </section>
-
-    <section class="detail-section">
-      <h3>Publishers</h3>
-      <div data-node-field="publishersHtml">${renderEndpointList(publishers)}</div>
-    </section>
-
-    <section class="detail-section">
-      <h3>Subscribers</h3>
-      <div data-node-field="subscribersHtml">${renderEndpointList(subscribers)}</div>
-    </section>
-
-    <section class="detail-section">
-      <h3>Services</h3>
-      <div data-node-field="servicesHtml">${renderEndpointList(services)}</div>
     </section>
   `;
 }
@@ -332,7 +316,9 @@ function renderNodeLogs(snapshot) {
   const logs = snapshot.selectedLogs;
   const lines = Array.isArray(logs?.lines) ? logs.lines : [];
   const logLines = lines.join('\n');
-  const limit = snapshot.selectedLogLimit || logs?.limit || 100;
+  const limit = snapshot.selectedLogLimit || logs?.limit || 5;
+  const buttonLabel = snapshot.selectedLogsLive ? 'Live' : 'Load';
+  const liveState = snapshot.selectedLogsLive ? 'on' : 'off';
 
   return `
     <section class="detail-section">
@@ -349,7 +335,15 @@ function renderNodeLogs(snapshot) {
             value="${escapeHtml(limit)}"
           >
         </label>
-        <button id="blockLogsButton" type="button">Load Logs</button>
+        <button
+          id="blockLogsButton"
+          class="logs-live-button"
+          type="button"
+          data-live-state="${liveState}"
+        >
+          <span class="live-dot" aria-hidden="true"></span>
+          ${buttonLabel}
+        </button>
       </div>
       ${logLines
         ? `<pre class="log-box">${escapeHtml(logLines)}</pre>`
@@ -580,6 +574,7 @@ function getRenderKey(snapshot, controls) {
     isTopicBlock(snapshot.selectedBlock) ? 'topic' : 'generic',
     snapshot.topicPublishDraft.advanced ? 'advanced' : 'simple',
     snapshot.selectedLogLimit || '',
+    snapshot.selectedLogsLive ? 'live-logs' : 'static-logs',
     snapshot.selectedLogs?.last_update || '',
     Array.isArray(snapshot.selectedLogs?.lines) ? snapshot.selectedLogs.lines.length : '',
     getDataSignature(snapshot),
@@ -727,18 +722,19 @@ export function renderBlockDetails(container, snapshot) {
       </div>
       <span class="status-pill" data-detail-status>${escapeHtml(status)}</span>
     </div>
-
+    
     <div class="detail-rows">
-      ${renderRows(detailRows(snapshot.selectedBlock))}
+    ${renderRows(detailRows(snapshot.selectedBlock))}
     </div>
-
+    
+    
     <div data-detail-data>
-      ${renderDataSection(snapshot)}
+    ${renderDataSection(snapshot)}
     </div>
-
+    
     ${isNodeBlock(snapshot.selectedBlock) ? renderNodeLogs(snapshot) : ''}
 
     ${topicBlock ? renderTopicPublishForm(snapshot) : renderControlsSection(controls, snapshot.commandResponse)}
-  `;
+    `;
   restoreFocusedField(focusedField);
 }

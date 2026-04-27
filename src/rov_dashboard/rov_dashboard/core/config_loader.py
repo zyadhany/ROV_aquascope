@@ -34,6 +34,10 @@ DEFAULT_SERVICES_CONFIG: dict[str, Any] = {
     'services': [],
 }
 
+DEFAULT_DASHBOARD_SETTINGS: dict[str, Any] = {
+    'max_logs_stored': 1000,
+}
+
 try:
     from ament_index_python.packages import (
         PackageNotFoundError,
@@ -118,4 +122,21 @@ def load_services_config() -> dict[str, Any]:
     services = loaded_services.get('services')
     return {
         'services': services if isinstance(services, list) else [],
+    }
+
+
+def load_dashboard_settings() -> dict[str, Any]:
+    loaded_settings = load_json_config(
+        'dashboard_settings.json',
+        DEFAULT_DASHBOARD_SETTINGS,
+    )
+    max_logs_stored = loaded_settings.get('max_logs_stored')
+
+    try:
+        max_logs_stored = int(max_logs_stored)
+    except (TypeError, ValueError):
+        max_logs_stored = DEFAULT_DASHBOARD_SETTINGS['max_logs_stored']
+
+    return {
+        'max_logs_stored': max(1, max_logs_stored),
     }
