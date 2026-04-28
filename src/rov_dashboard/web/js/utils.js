@@ -142,3 +142,9 @@ export function blockApiPath(blockId) {
   const encoded = cleanId.split('/').map(encodeURIComponent).join('/');
   return `/api/block/${encoded}`;
 }
+
+export function nodeApiPath(nodeName) {
+  const cleanName = String(nodeName || '').replace(/^\/+/, '');
+  const encoded = cleanName.split('/').map(encodeURIComponent).join('/');
+  return `/api/nodes/${encoded}`;
+}

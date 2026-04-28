@@ -118,6 +118,9 @@
       "description": "Published camera image stream from the Camera Streamer node.",
       "ros_topic": "/rov/camera/image",
       "message_type": "sensor_msgs/Image",
+      "monitor": {
+        "latest_message": false
+      },
       "show": {
         "publishers": true,
         "subscribers": true,

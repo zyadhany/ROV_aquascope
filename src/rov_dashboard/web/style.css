@@ -365,6 +365,78 @@ textarea {
   max-height: 130px;
 }
 
+.node-control-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: #0d1626;
+  padding: 10px;
+}
+
+.node-control-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.node-control-kicker,
+.node-control-copy small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.node-control-kicker {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.node-control-copy strong,
+.node-control-copy small {
+  overflow-wrap: anywhere;
+}
+
+.node-control-copy strong {
+  font-size: 17px;
+}
+
+.node-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 116px;
+  border: 0;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.node-action-button[data-tone="success"] {
+  background: #16a34a;
+}
+
+.node-action-button[data-tone="success"]:hover:not(:disabled) {
+  background: #22c55e;
+}
+
+.node-action-button[data-tone="danger"] {
+  background: #dc2626;
+}
+
+.node-action-button[data-tone="danger"]:hover:not(:disabled) {
+  background: #ef4444;
+}
+
+.node-action-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+}
+
 .commands-grid {
   display: grid;
   gap: 8px;
@@ -573,6 +645,14 @@ textarea {
 
   .detail-row {
     grid-template-columns: 1fr;
+  }
+
+  .node-control-card {
+    grid-template-columns: 1fr;
+  }
+
+  .node-action-button {
+    width: 100%;
   }
 
   .logs-toolbar {

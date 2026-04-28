@@ -4,17 +4,10 @@ from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException, Query
 
+from .errors import bad_request, not_found
 from .runtime import flowchart_manager as manager
 
 router = APIRouter(prefix='/api', tags=['blocks'])
-
-
-def _not_found(error: KeyError) -> HTTPException:
-    return HTTPException(status_code=404, detail=str(error).strip("'"))
-
-
-def _bad_request(error: ValueError) -> HTTPException:
-    return HTTPException(status_code=400, detail=str(error))
 
 
 @router.get('/blocks/ids')
@@ -29,9 +22,9 @@ def get_block_state(block_id: str) -> dict[str, Any]:
     try:
         return manager.get_block_state(block_id)
     except KeyError as error:
-        raise _not_found(error) from error
+        raise not_found(error) from error
     except ValueError as error:
-        raise _bad_request(error) from error
+        raise bad_request(error) from error
 
 
 @router.get('/block/{block_id:path}/data')
@@ -39,9 +32,9 @@ def get_block_data(block_id: str) -> dict[str, Any]:
     try:
         return manager.get_block_data(block_id)
     except KeyError as error:
-        raise _not_found(error) from error
+        raise not_found(error) from error
     except ValueError as error:
-        raise _bad_request(error) from error
+        raise bad_request(error) from error
 
 
 @router.post('/block/{block_id:path}/command')
@@ -52,9 +45,9 @@ def send_block_command(
     try:
         return manager.send_command(block_id, command)
     except KeyError as error:
-        raise _not_found(error) from error
+        raise not_found(error) from error
     except ValueError as error:
-        raise _bad_request(error) from error
+        raise bad_request(error) from error
 
 
 @router.get('/block/{block_id:path}/logs')
@@ -65,9 +58,9 @@ def get_block_logs(
     try:
         return manager.get_block_logs(block_id, limit=limit)
     except KeyError as error:
-        raise _not_found(error) from error
+        raise not_found(error) from error
     except ValueError as error:
-        raise _bad_request(error) from error
+        raise bad_request(error) from error
 
 
 @router.post('/topic/publish')
@@ -89,7 +82,7 @@ def publish_topic(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
             payload.get('value'),
         )
     except ValueError as error:
-        raise _bad_request(error) from error
+        raise bad_request(error) from error
 
 
 @router.get('/block/{block_id:path}')
@@ -97,6 +90,6 @@ def get_block(block_id: str) -> dict[str, Any]:
     try:
         return manager.get_block(block_id)
     except KeyError as error:
-        raise _not_found(error) from error
+        raise not_found(error) from error
     except ValueError as error:
-        raise _bad_request(error) from error
+        raise bad_request(error) from error

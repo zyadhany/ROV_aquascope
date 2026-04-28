@@ -155,6 +155,76 @@ function renderCommandResponseSlot(response) {
   `;
 }
 
+function renderNodeActionResponse(response) {
+  if (!response) {
+    return '';
+  }
+
+  const tone = response.success === false ? 'error' : 'success';
+  return `
+    <div class="response-box" data-tone="${tone}">
+      ${escapeHtml(response.message || 'Node action completed.')}
+    </div>
+  `;
+}
+
+function nodeRuntimeFromSnapshot(snapshot) {
+  const data = snapshot.selectedState?.data || {};
+  const rawStatus = String(
+    data.status
+      || snapshot.selectedState?.status
+      || snapshot.selectedState?.state
+      || '',
+  ).toLowerCase();
+  const running = typeof data.running === 'boolean'
+    ? data.running
+    : ['active', 'running'].includes(rawStatus);
+  const nodeName = snapshot.selectedBlock?.ros_node
+    || data.node
+    || data.node_name
+    || snapshot.selectedBlock?.id
+    || '';
+
+  return {
+    action: running ? 'stop' : 'start',
+    buttonLabel: running ? 'Stop Node' : 'Start Node',
+    statusLabel: running ? 'Running' : 'Stopped',
+    tone: running ? 'danger' : 'success',
+    nodeName,
+  };
+}
+
+function renderNodeAction(snapshot) {
+  const runtime = nodeRuntimeFromSnapshot(snapshot);
+  const pending = Boolean(snapshot.nodeActionPending);
+  const disabled = pending || !runtime.nodeName;
+
+  return `
+    <section class="detail-section">
+      <div class="node-control-card">
+        <div class="node-control-copy">
+          <span class="node-control-kicker">Node Control</span>
+          <strong>${escapeHtml(runtime.statusLabel)}</strong>
+          <small>${escapeHtml(runtime.nodeName || 'No node name configured')}</small>
+        </div>
+        <button
+          class="node-action-button"
+          type="button"
+          data-node-action="${escapeHtml(runtime.action)}"
+          data-tone="${escapeHtml(runtime.tone)}"
+          ${disabled ? 'disabled' : ''}
+        >
+          <span class="node-action-dot" aria-hidden="true"></span>
+          ${escapeHtml(pending ? 'Working...' : runtime.buttonLabel)}
+        </button>
+      </div>
+      <div data-node-action-response>
+        ${renderNodeActionResponse(snapshot.nodeActionResponse)}
+      </div>
+    </section>
+  `;
+}
+
 function renderEndpointList(items) {
   if (!Array.isArray(items) || items.length === 0) {
     return '<div class="subtle-text">None detected.</div>';
@@ -307,6 +377,8 @@ function renderNodeData(snapshot) {
   const services = Array.isArray(data.services) ? data.services : [];
 
   return `
+    ${renderNodeAction(snapshot)}
+
     <section class="detail-section">
       <h3>ROS Node</h3>
       <div class="detail-rows compact-rows">
@@ -567,6 +639,20 @@ function getControlsSignature(controls) {
 function getDataSignature(snapshot) {
   if (isTopicBlock(snapshot.selectedBlock)) {
     return 'topic';
+  }
+
+  if (isNodeBlock(snapshot.selectedBlock)) {
+    const data = snapshot.selectedState?.data || {};
+    return [
+      'node',
+      data.running ?? '',
+      data.status || '',
+      snapshot.selectedState?.status || '',
+      snapshot.selectedBlock?.ros_node || '',
+      snapshot.nodeActionPending ? 'pending' : 'idle',
+      snapshot.nodeActionResponse?.success ?? '',
+      snapshot.nodeActionResponse?.message || '',
+    ].join(':');
   }
 
   return getValueEntries(snapshot)

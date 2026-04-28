@@ -10,6 +10,7 @@ import {
   isNodeBlock,
   isTopicBlock,
   mergedFlowchart,
+  nodeApiPath,
   parsePublishValue,
 } from './utils.js';
 
@@ -26,6 +27,8 @@ export class DashboardApp {
     this.selectedLogsLive = false;
     this.selectedTopicData = null;
     this.commandResponse = null;
+    this.nodeActionPending = false;
+    this.nodeActionResponse = null;
     this.topicPublishResponse = null;
     this.services = [];
     this.serviceLogs = {};
@@ -271,6 +274,8 @@ export class DashboardApp {
       selectedLogsLive: this.selectedLogsLive,
       selectedTopicData: this.selectedTopicData,
       commandResponse: this.commandResponse,
+      nodeActionPending: this.nodeActionPending,
+      nodeActionResponse: this.nodeActionResponse,
       topicPublishResponse: this.topicPublishResponse,
       topicDataStatus: this.topicDataStatus,
       topicDataError: this.topicDataError,
@@ -417,6 +422,8 @@ export class DashboardApp {
     this.selectedLogsLive = false;
     this.selectedTopicData = null;
     this.commandResponse = null;
+    this.nodeActionPending = false;
+    this.nodeActionResponse = null;
     this.topicPublishResponse = null;
     this.topicDataStatus = 'idle';
     this.topicDataError = '';
@@ -510,6 +517,81 @@ export class DashboardApp {
       this.commandResponse.success = false;
     }
     this.renderBlockDetails();
+  }
+
+  selectedNodeName() {
+    const data = this.selectedState?.data || {};
+    return this.selectedBlock?.ros_node
+      || data.node
+      || data.node_name
+      || this.selectedState?.node
+      || this.selectedState?.node_name
+      || this.selectedBlock?.id
+      || '';
+  }
+
+  async callSelectedNodeAction(action) {
+    if (
+      !this.selectedBlockId
+      || !isNodeBlock(this.selectedBlock)
+      || this.nodeActionPending
+    ) {
+      return;
+    }
+
+    const nodeName = this.selectedNodeName();
+    if (!nodeName || !['start', 'stop'].includes(action)) {
+      this.nodeActionResponse = {
+        success: false,
+        message: 'Node action is not available for this block.',
+      };
+      this.renderBlockDetails();
+      return;
+    }
+
+    this.nodeActionPending = true;
+    this.nodeActionResponse = null;
+    this.renderBlockDetails();
+
+    try {
+      const response = await fetch(`${nodeApiPath(nodeName)}/${action}`, {
+        method: 'POST',
+      });
+      const result = await response.json();
+      this.nodeActionResponse = {
+        ...result,
+        success: response.ok && result.success !== false,
+      };
+
+      this.selectedState = {
+        ...(this.selectedState || {}),
+        status: result.status || this.selectedState?.status,
+        data: {
+          ...(this.selectedState?.data || {}),
+          ...result,
+        },
+      };
+
+      if (!response.ok) {
+        this.setSaveStatus(result.message || 'Node action failed', 'error');
+        return;
+      }
+
+      this.setSaveStatus(
+        result.message || `Node ${action} accepted`,
+        result.success === false ? 'error' : 'success',
+      );
+      await this.refreshSelectedState();
+    } catch (error) {
+      this.nodeActionResponse = {
+        success: false,
+        message: error.message || 'Node action failed.',
+      };
+      this.setSaveStatus('Node action failed', 'error');
+    } finally {
+      this.nodeActionPending = false;
+      this.renderBlockDetails();
+    }
   }
 
   updateTopicPublishDraftFromForm() {
@@ -736,6 +818,8 @@ export class DashboardApp {
     this.selectedLogsLive = false;
     this.selectedTopicData = null;
     this.commandResponse = null;
+    this.nodeActionPending = false;
+    this.nodeActionResponse = null;
     this.topicPublishResponse = null;
     this.renderEmptyDetails();
     this.updateStatusBar();
@@ -791,6 +875,12 @@ export class DashboardApp {
       const commandButton = event.target.closest('[data-command-index]');
       if (commandButton) {
         await this.sendSelectedCommand(Number(commandButton.dataset.commandIndex));
+        return;
+      }
+
+      const nodeActionButton = event.target.closest('[data-node-action]');
+      if (nodeActionButton) {
+        await this.callSelectedNodeAction(nodeActionButton.dataset.nodeAction);
         return;
       }
 

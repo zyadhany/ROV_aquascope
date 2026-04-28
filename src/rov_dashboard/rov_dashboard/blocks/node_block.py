@@ -56,7 +56,7 @@ class NodeBlock(BaseBlock):
         message = entry.get('message', '')
 
         return (
-            f'{timestamp} '
+            # f'{timestamp} '
             # f'[{level}] '
             # f'[{name}] '
             f'{message}'

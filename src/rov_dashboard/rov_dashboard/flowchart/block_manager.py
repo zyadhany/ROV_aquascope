@@ -17,6 +17,7 @@ class BlockManager:
         self._blocks: list[BaseBlock] = []
         self._blocks_by_id: dict[str, BaseBlock] = {}
         self._connections: list[dict[str, Any]] = []
+        self.config_version = 0
         self._settings = load_dashboard_settings()
         self.load_from_config()
         self.ros_interface.set_rosout_log_handler(self.route_rosout_log)
@@ -54,6 +55,7 @@ class BlockManager:
             for connection in connections
             if isinstance(connection, dict)
         ] if isinstance(connections, list) else []
+        self.config_version += 1
 
     def list_blocks(self) -> list[BaseBlock]:
         return list(self._blocks)

@@ -29,6 +29,16 @@ class FakeRosInterface:
         }
 
 
+class CountingBlockManager(BlockManager):
+    def __init__(self, ros_interface: FakeRosInterface) -> None:
+        super().__init__(ros_interface)
+        self.list_node_blocks_calls = 0
+
+    def list_node_blocks(self) -> list[object]:
+        self.list_node_blocks_calls += 1
+        return super().list_node_blocks()
+
+
 class FakeProcess:
     def __init__(self, pid: int = 12345) -> None:
         self.pid = pid
@@ -80,6 +90,30 @@ def test_node_manager_status_supports_alias(monkeypatch: pytest.MonkeyPatch) -> 
     assert status['running'] is True
     assert status['status'] == 'running'
     assert status['node_name'] == '/hold_depth'
+
+
+def test_node_manager_caches_normalized_node_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_blocks(
+        monkeypatch,
+        [
+            {
+                'id': '/nodes/depth_hold',
+                'type': 'nodes',
+                'ros_node': '/hold_depth',
+                'package': 'my_robot_sim',
+            },
+        ],
+    )
+    ros_interface = FakeRosInterface()
+    block_manager = CountingBlockManager(ros_interface)
+    manager = NodeManager(ros_interface, block_manager)
+
+    manager.get_status('depth_hold')
+    manager.get_status('depth_hold')
+
+    assert block_manager.list_node_blocks_calls == 1
 
 
 def test_node_manager_start_tracks_process(monkeypatch: pytest.MonkeyPatch) -> None:

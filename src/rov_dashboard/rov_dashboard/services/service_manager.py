@@ -4,13 +4,12 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import os
 import shlex
-import signal
 import subprocess
-import threading
 from typing import Any
 
 from .node_manager import NodeManager
-from ..core.config_loader import load_services_config
+from .process_registry import ProcessRegistry
+from ..core.config_loader import get_package_paths, load_services_config
 from ..core.ros_interface import RosInterface
 
 
@@ -22,41 +21,58 @@ class ServiceManager:
     ) -> None:
         self.ros_interface = ros_interface or RosInterface()
         self.node_manager = node_manager or NodeManager(self.ros_interface)
-        self._lock = threading.Lock()
-        self._processes: dict[str, subprocess.Popen[Any]] = {}
+        self._processes = ProcessRegistry(
+            self._popen,
+            lambda pid, sig: os.killpg(pid, sig),
+            subprocess.TimeoutExpired,
+        )
+        self._service_config_mtime: float | None = None
+        self._service_config_cache: list[dict[str, Any]] = []
+        self._service_config_loaded = False
 
     def _timestamp(self) -> str:
         return datetime.now(timezone.utc).isoformat()
 
+    def _popen(self, command: list[str]) -> subprocess.Popen[Any]:
+        return subprocess.Popen(
+            command,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+            env=os.environ.copy(),
+        )
+
+    def _service_config_timestamp(self) -> float | None:
+        try:
+            return (
+                get_package_paths().config_directory / 'services.json'
+            ).stat().st_mtime
+        except OSError:
+            return None
+
+    def _service_configs(self) -> list[dict[str, Any]]:
+        mtime = self._service_config_timestamp()
+        if self._service_config_loaded and self._service_config_mtime == mtime:
+            return self._service_config_cache
+
+        services = [
+            deepcopy(service)
+            for service in load_services_config().get('services', [])
+            if isinstance(service, dict) and str(service.get('id', '')).strip()
+        ]
+        self._service_config_cache = services
+        self._service_config_mtime = mtime
+        self._service_config_loaded = True
+        return services
+
     def _services_by_id(self) -> dict[str, dict[str, Any]]:
         services_by_id: dict[str, dict[str, Any]] = {}
-        for service in load_services_config().get('services', []):
-            if not isinstance(service, dict):
-                continue
+        for service in self._service_configs():
             service_id = str(service.get('id', '')).strip()
-            if not service_id:
-                continue
             service_copy = deepcopy(service)
             service_copy.update(self._runtime_info_for_service(service_copy))
             services_by_id[service_id] = service_copy
         return services_by_id
-
-    def _tracked_process(self, service_id: str) -> subprocess.Popen[Any] | None:
-        with self._lock:
-            process = self._processes.get(service_id)
-
-        if process is None:
-            return None
-
-        if process.poll() is None:
-            return process
-
-        with self._lock:
-            current_process = self._processes.get(service_id)
-            if current_process is process:
-                self._processes.pop(service_id, None)
-
-        return None
 
     def _runtime_info_for_service(self, service: dict[str, Any]) -> dict[str, Any]:
         service_id = str(service.get('id', '')).strip()
@@ -88,7 +104,7 @@ class ServiceManager:
                     'last_update': self._timestamp(),
                 }
 
-        tracked_process = self._tracked_process(service_id)
+        tracked_process = self._processes.running(service_id)
         tracked_running = tracked_process is not None
         controllable = bool(start_command) and stop_method != 'manual'
 
@@ -130,7 +146,7 @@ class ServiceManager:
         if not service.get('controllable', False):
             return self._manual_service_response(service_id, 'start')
 
-        if self._tracked_process(service_id) is not None:
+        if self._processes.running(service_id) is not None:
             return {
                 'success': True,
                 'service': self.get_service(service_id),
@@ -150,13 +166,7 @@ class ServiceManager:
             }
 
         try:
-            process = subprocess.Popen(
-                command,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-                env=os.environ.copy(),
-            )
+            self._processes.start(service_id, command)
         except Exception as exc:
             return {
                 'success': False,
@@ -165,9 +175,6 @@ class ServiceManager:
                 'message': f'Failed to start service: {exc}',
                 'last_update': self._timestamp(),
             }
-
-        with self._lock:
-            self._processes[service_id] = process
 
         return {
             'success': True,
@@ -186,8 +193,7 @@ class ServiceManager:
         if not service.get('controllable', False):
             return self._manual_service_response(service_id, 'stop')
 
-        process = self._tracked_process(service_id)
-        if process is None:
+        if not self._processes.stop(service_id):
             return {
                 'success': True,
                 'service': self.get_service(service_id),
@@ -195,18 +201,6 @@ class ServiceManager:
                 'message': 'Service is not running under dashboard control.',
                 'last_update': self._timestamp(),
             }
-
-        try:
-            os.killpg(process.pid, signal.SIGTERM)
-            process.wait(timeout=3)
-        except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait(timeout=3)
-        except ProcessLookupError:
-            pass
-        finally:
-            with self._lock:
-                self._processes.pop(service_id, None)
 
         return {
             'success': True,

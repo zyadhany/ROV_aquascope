@@ -26,6 +26,9 @@ class FakeNode:
     ) -> None:
         self._publishers = publishers or []
         self._subscribers = subscribers or []
+        self.publisher_info_calls = 0
+        self.subscription_info_calls = 0
+        self.subscription_callback = None
 
     def get_name(self) -> str:
         return 'dashboard_ros_interface'
@@ -34,16 +37,28 @@ class FakeNode:
         return '/'
 
     def get_publishers_info_by_topic(self, topic_name: str) -> list[FakeTopicEndpoint]:
+        self.publisher_info_calls += 1
         return self._publishers
 
     def get_subscriptions_info_by_topic(
         self,
         topic_name: str,
     ) -> list[FakeTopicEndpoint]:
+        self.subscription_info_calls += 1
         return self._subscribers
 
     def get_topic_names_and_types(self) -> list[tuple[str, list[str]]]:
         return [('/test/topic', ['std_msgs/msg/Float64'])]
+
+    def create_subscription(
+        self,
+        msg_class: object,
+        topic_name: str,
+        callback: object,
+        qos: int,
+    ) -> object:
+        self.subscription_callback = callback
+        return object()
 
 
 def build_interface(node: FakeNode) -> RosInterface:
@@ -52,9 +67,12 @@ def build_interface(node: FakeNode) -> RosInterface:
     interface.node = node
     interface._latest_messages = {}
     interface._latest_message_times = {}
+    interface._last_received_at = {}
+    interface._capture_latest_messages = {}
     interface._subscriptions = {'/test/topic': object()}
     interface._topic_types = {'/test/topic': 'std_msgs/msg/Float64'}
     interface._sample_times = {'/test/topic': deque(maxlen=50)}
+    interface._sample_sizes = {'/test/topic': deque(maxlen=50)}
     interface._logs = deque(maxlen=200)
     interface._rosout_log_handler = None
     return interface
@@ -121,18 +139,21 @@ def test_set_msg_value_supports_nested_message_dicts() -> None:
 
 
 def test_topic_info_filters_dashboard_endpoint_counts() -> None:
-    interface = build_interface(
-        FakeNode(
-            publishers=[FakeTopicEndpoint('dashboard_ros_interface')],
-            subscribers=[FakeTopicEndpoint('dashboard_ros_interface')],
-        ),
+    node = FakeNode(
+        publishers=[FakeTopicEndpoint('dashboard_ros_interface')],
+        subscribers=[FakeTopicEndpoint('dashboard_ros_interface')],
     )
+    interface = build_interface(node)
 
     info = interface.get_topic_info('/test/topic')
+    again = interface.get_topic_info('/test/topic')
 
     assert info['publishers_count'] == 0
     assert info['subscribers_count'] == 0
     assert info['status'] == 'no_publishers'
+    assert again['status'] == 'no_publishers'
+    assert node.publisher_info_calls == 1
+    assert node.subscription_info_calls == 1
 
 
 def test_topic_info_marks_old_latest_message_as_stale() -> None:
@@ -160,6 +181,37 @@ def test_topic_info_marks_old_latest_message_as_stale() -> None:
     assert info['is_stale'] is True
     assert info['message_age_seconds'] > RosInterface.DEFAULT_STALE_AFTER_SECONDS
     assert latest['is_stale'] is True
+
+
+def test_watch_topic_can_skip_latest_message_capture() -> None:
+    node = FakeNode(publishers=[FakeTopicEndpoint('external_depth_node')])
+    interface = build_interface(node)
+    interface._subscriptions = {}
+    interface._topic_types = {}
+    interface._sample_times = {}
+    interface._sample_sizes = {}
+
+    result = interface.watch_topic(
+        '/test/topic',
+        'std_msgs/Float64',
+        latest_message=False,
+    )
+    message = Float64()
+    message.data = 1.25
+
+    assert result['success'] is True
+    assert callable(node.subscription_callback)
+
+    node.subscription_callback(message)
+
+    info = interface.get_topic_info('/test/topic')
+    latest = interface.get_latest_topic_data('/test/topic')
+
+    assert '/test/topic' not in interface._latest_messages
+    assert info['status'] == 'active'
+    assert info['captures_latest_message'] is False
+    assert latest['data'] is None
+    assert latest['capture_enabled'] is False
 
 
 def test_rosout_callback_routes_structured_entries_to_handler() -> None:

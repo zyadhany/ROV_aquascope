@@ -8,6 +8,9 @@ from rov_dashboard.flowchart.flowchart_manager import FlowchartManager
 
 
 class FakeRosInterface:
+    def __init__(self) -> None:
+        self.watch_calls: list[dict[str, object]] = []
+
     def set_rosout_log_handler(self, handler: object) -> None:
         self.rosout_log_handler = handler
 
@@ -17,7 +20,17 @@ class FakeRosInterface:
     def get_logs(self, source: str, limit: int | None = None) -> dict[str, object]:
         return {'source': source, 'lines': [], 'limit': limit}
 
-    def watch_topic(self, topic: str, message_type: str = '') -> dict[str, object]:
+    def watch_topic(
+        self,
+        topic: str,
+        message_type: str = '',
+        latest_message: bool = True,
+    ) -> dict[str, object]:
+        self.watch_calls.append({
+            'topic': topic,
+            'message_type': message_type,
+            'latest_message': latest_message,
+        })
         return {
             'success': True,
             'topic': topic,
@@ -158,6 +171,37 @@ def test_flowchart_manager_returns_block_data(
 
     assert data['ros_topic'] == '/rov/depth/current'
     assert data['latest_message']['data'] == {'data': 1.25}
+
+
+def test_topic_block_uses_monitor_latest_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    block_config = {
+        'blocks': [
+            {
+                'id': '/topics/camera/image',
+                'type': 'topic',
+                'name': 'Camera Image',
+                'ros_topic': '/rov/camera/image',
+                'message_type': 'sensor_msgs/Image',
+                'monitor': {
+                    'latest_message': False,
+                },
+            },
+        ],
+        'connections': [],
+    }
+
+    monkeypatch.setattr(
+        block_manager_module,
+        'load_blocks_config',
+        lambda: block_config,
+    )
+
+    ros_interface = FakeRosInterface()
+    BlockManager(ros_interface)
+
+    assert ros_interface.watch_calls[0]['latest_message'] is False
 
 
 def test_hardware_block_is_descriptive_only(

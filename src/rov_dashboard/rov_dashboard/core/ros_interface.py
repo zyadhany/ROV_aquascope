@@ -29,17 +29,22 @@ class RosInterface:
     """
 
     DEFAULT_STALE_AFTER_SECONDS = 2.0
+    DEFAULT_GRAPH_CACHE_SECONDS = 0.5
 
     def __init__(self) -> None:
         self._lock = threading.RLock()
 
         self._latest_messages: dict[str, dict[str, Any]] = {}
         self._latest_message_times: dict[str, float] = {}
+        self._last_received_at: dict[str, str] = {}
+        self._capture_latest_messages: dict[str, bool] = {}
         self._topic_types: dict[str, str] = {}
         self._subscriptions: dict[str, Any] = {}
         self._publishers: dict[str, Any] = {}
         self._sample_times: dict[str, deque[float]] = {}
         self._sample_sizes: dict[str, deque[tuple[float, int]]] = {}
+        self._topic_graph_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+        self._node_info_cache: dict[str, tuple[float, dict[str, Any]]] = {}
         self._logs: deque[str] = deque(maxlen=200)
         self._rosout_log_handler: Any = None
 
@@ -218,7 +223,7 @@ class RosInterface:
 
     def _calculate_frequency(self, topic_name: str) -> float:
         with self._lock:
-            samples = self._sample_times.get(topic_name)
+            samples = getattr(self, '_sample_times', {}).get(topic_name)
 
             if not samples or len(samples) < 2:
                 return 0.0
@@ -233,7 +238,7 @@ class RosInterface:
 
     def _calculate_bandwidth(self, topic_name: str) -> dict[str, float | int]:
         with self._lock:
-            samples = list(self._sample_sizes.get(topic_name, ()))
+            samples = list(getattr(self, '_sample_sizes', {}).get(topic_name, ()))
 
         latest_size = samples[-1][1] if samples else 0
 
@@ -284,6 +289,27 @@ class RosInterface:
             and age_seconds > self.DEFAULT_STALE_AFTER_SECONDS
         )
 
+    def _latest_message_capture_enabled(self, topic_name: str) -> bool:
+        with self._lock:
+            return getattr(
+                self,
+                '_capture_latest_messages',
+                {},
+            ).get(topic_name, True)
+
+    def _set_latest_message_capture(
+        self,
+        topic_name: str,
+        enabled: bool,
+    ) -> None:
+        with self._lock:
+            if not hasattr(self, '_capture_latest_messages'):
+                self._capture_latest_messages = {}
+
+            self._capture_latest_messages[topic_name] = enabled
+            if not enabled:
+                self._latest_messages.pop(topic_name, None)
+
     def _infer_message_type(self, topic_name: str) -> str:
         topic_name = self._normalize_topic_name(topic_name)
 
@@ -308,13 +334,58 @@ class RosInterface:
 
         return []
 
+    def _endpoint_payloads(self, endpoint_infos: list[Any]) -> list[dict[str, Any]]:
+        return [
+            {
+                'node_name': info.node_name,
+                'node_namespace': info.node_namespace,
+                'topic_type': self._short_message_type(info.topic_type),
+                'topic_type_full': self._normalize_message_type(info.topic_type),
+            }
+            for info in endpoint_infos
+            if not self._is_own_endpoint(info)
+        ]
+
+    def _topic_graph_snapshot(self, topic_name: str) -> dict[str, Any]:
+        now = time.time()
+        cache = getattr(self, '_topic_graph_cache', {})
+        cached = cache.get(topic_name)
+        if cached and now - cached[0] <= self.DEFAULT_GRAPH_CACHE_SECONDS:
+            return cached[1]
+
+        try:
+            publishers_info = self.node.get_publishers_info_by_topic(topic_name)
+        except Exception:
+            publishers_info = []
+
+        try:
+            subscribers_info = self.node.get_subscriptions_info_by_topic(topic_name)
+        except Exception:
+            subscribers_info = []
+
+        discovered_types = self._get_all_topic_types(topic_name)
+        graph = {
+            'publishers': self._endpoint_payloads(publishers_info),
+            'subscribers': self._endpoint_payloads(subscribers_info),
+            'discovered_types': discovered_types,
+        }
+
+        with self._lock:
+            if not hasattr(self, '_topic_graph_cache'):
+                self._topic_graph_cache = {}
+            self._topic_graph_cache[topic_name] = (now, graph)
+
+        return graph
+
     def watch_topic(
         self,
         topic_name: str,
         message_type: str | None = None,
+        latest_message: bool = True,
     ) -> dict[str, Any]:
         topic_name = self._normalize_topic_name(topic_name)
         message_type = self._normalize_message_type(message_type)
+        self._set_latest_message_capture(topic_name, latest_message)
 
         with self._lock:
             if topic_name in self._subscriptions:
@@ -358,24 +429,41 @@ class RosInterface:
             self._topic_types[topic_name] = message_type
             self._sample_times[topic_name] = deque(maxlen=50)
             self._sample_sizes[topic_name] = deque(maxlen=50)
+            getattr(self, '_topic_graph_cache', {}).pop(topic_name, None)
 
         def callback(msg: Any) -> None:
             now = time.time()
-            data = self._message_to_dict(msg)
-            size_bytes = self._message_size_bytes(msg, data)
+            received_at = self._timestamp()
+            capture_latest_message = self._latest_message_capture_enabled(topic_name)
+            if capture_latest_message:
+                data = self._message_to_dict(msg)
+                size_bytes = self._message_size_bytes(msg, data)
+            else:
+                data = None
+                try:
+                    size_bytes = len(serialize_message(msg))
+                except Exception:
+                    size_bytes = 0
 
             with self._lock:
                 self._sample_times[topic_name].append(now)
                 self._sample_sizes[topic_name].append((now, size_bytes))
                 self._latest_message_times[topic_name] = now
-                self._latest_messages[topic_name] = {
-                    'topic': topic_name,
-                    'message_type': self._short_message_type(message_type),
-                    'message_type_full': message_type,
-                    'data': data,
-                    'size_bytes': size_bytes,
-                    'received_at': self._timestamp(),
-                }
+                if not hasattr(self, '_last_received_at'):
+                    self._last_received_at = {}
+                self._last_received_at[topic_name] = received_at
+
+                if capture_latest_message:
+                    self._latest_messages[topic_name] = {
+                        'topic': topic_name,
+                        'message_type': self._short_message_type(message_type),
+                        'message_type_full': message_type,
+                        'data': data,
+                        'size_bytes': size_bytes,
+                        'received_at': received_at,
+                    }
+                else:
+                    self._latest_messages.pop(topic_name, None)
 
         try:
             subscription = self.node.create_subscription(
@@ -409,60 +497,41 @@ class RosInterface:
 
     def get_topic_info(self, topic_name: str) -> dict[str, Any]:
         topic_name = self._normalize_topic_name(topic_name)
-
-        try:
-            publishers_info = self.node.get_publishers_info_by_topic(topic_name)
-        except Exception:
-            publishers_info = []
-
-        try:
-            subscribers_info = self.node.get_subscriptions_info_by_topic(topic_name)
-        except Exception:
-            subscribers_info = []
-
-        publishers = [
-            {
-                'node_name': info.node_name,
-                'node_namespace': info.node_namespace,
-                'topic_type': self._short_message_type(info.topic_type),
-                'topic_type_full': self._normalize_message_type(info.topic_type),
-            }
-            for info in publishers_info
-            if not self._is_own_endpoint(info)
-        ]
-
-        subscribers = [
-            {
-                'node_name': info.node_name,
-                'node_namespace': info.node_namespace,
-                'topic_type': self._short_message_type(info.topic_type),
-                'topic_type_full': self._normalize_message_type(info.topic_type),
-            }
-            for info in subscribers_info
-            if not self._is_own_endpoint(info)
-        ]
+        graph = self._topic_graph_snapshot(topic_name)
+        publishers = graph['publishers']
+        subscribers = graph['subscribers']
+        discovered_types = graph['discovered_types']
 
         with self._lock:
             is_watched = topic_name in self._subscriptions
-            has_latest = topic_name in self._latest_messages
+            has_received = topic_name in self._latest_message_times
             stored_type = self._topic_types.get(topic_name, '')
             latest = self._latest_messages.get(topic_name)
+            last_received_at = getattr(
+                self,
+                '_last_received_at',
+                {},
+            ).get(topic_name)
+            captures_latest_message = self._latest_message_capture_enabled(topic_name)
 
-        discovered_types = self._get_all_topic_types(topic_name)
         message_type_full = (
             stored_type or (discovered_types[0] if discovered_types else '')
         )
         message_age_seconds = self._message_age_seconds(topic_name)
         is_stale = self._is_stale(topic_name)
-        last_received_at = latest.get('received_at') if latest else None
+        last_received_at = last_received_at or (
+            latest.get('received_at') if latest else None
+        )
         bandwidth = self._calculate_bandwidth(topic_name)
 
-        if has_latest and is_stale:
+        if has_received and is_stale:
             status = 'stale'
             message = f'Last data received {message_age_seconds:.3f}s ago.'
-        elif has_latest:
+        elif has_received:
             status = 'active'
             message = 'Live data received.'
+            if not captures_latest_message:
+                message = 'Live data received; latest message capture is disabled.'
         elif publishers:
             status = 'waiting'
             message = 'Publisher found, waiting for first message.'
@@ -498,6 +567,7 @@ class RosInterface:
             'status': status,
             'message': message,
             'watched': is_watched,
+            'captures_latest_message': captures_latest_message,
             'last_update': self._timestamp(),
         }
 
@@ -506,17 +576,23 @@ class RosInterface:
 
         with self._lock:
             latest = self._latest_messages.get(topic_name)
+            capture_enabled = self._latest_message_capture_enabled(topic_name)
 
         if latest is None:
+            message = 'No message received yet.'
+            if not capture_enabled:
+                message = 'Latest message capture is disabled for this topic.'
+
             return {
                 'topic': topic_name,
                 'value': None,
                 'data': None,
-                'message': 'No message received yet.',
+                'message': message,
                 'received_at': None,
                 'age_seconds': None,
                 'is_stale': False,
                 'stale_after_seconds': self.DEFAULT_STALE_AFTER_SECONDS,
+                'capture_enabled': capture_enabled,
                 'last_update': self._timestamp(),
             }
 
@@ -524,10 +600,16 @@ class RosInterface:
         payload['age_seconds'] = self._message_age_seconds(topic_name)
         payload['is_stale'] = self._is_stale(topic_name)
         payload['stale_after_seconds'] = self.DEFAULT_STALE_AFTER_SECONDS
+        payload['capture_enabled'] = capture_enabled
         return payload
 
     def get_node_info(self, node_name: str) -> dict[str, Any]:
         node_name = self._normalize_node_name(node_name)
+        now = time.time()
+        cache = getattr(self, '_node_info_cache', {})
+        cached = cache.get(node_name)
+        if cached and now - cached[0] <= self.DEFAULT_GRAPH_CACHE_SECONDS:
+            return dict(cached[1])
 
         target_namespace = '/'
         target_name = node_name.lstrip('/')
@@ -600,7 +682,7 @@ class RosInterface:
                     f'Failed reading services for node {node_name}: {exc}',
                 )
 
-        return {
+        info = {
             'node': node_name,
             'node_name': target_name,
             'node_namespace': target_namespace,
@@ -610,6 +692,13 @@ class RosInterface:
             'services': services,
             'last_update': self._timestamp(),
         }
+
+        with self._lock:
+            if not hasattr(self, '_node_info_cache'):
+                self._node_info_cache = {}
+            self._node_info_cache[node_name] = (now, info)
+
+        return info
 
     def _set_msg_value(self, msg: Any, value: Any) -> None:
         if isinstance(value, dict):
