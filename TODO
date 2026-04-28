@@ -1,14 +1,51 @@
-- thruster
-    - add simple thruster
-    - make it 2, left and right
+4/28
+- get bandwidth data in dashboatrd (done)
+- system camera
+    - make camera_streamer node (done)
+    - make copressed version of image (done)
+===========
 
-- connect with api that
 
-- add bump to make it up and down
+- add sensors to gz_sim
+    - light
+    - IMU
+    - ultrasoinc
 
-- make system more smoth
-    - add hydrodynamic
+- from dashboard can start or terminate node
 
-- add light
+- adjust nodes loggers in ros2
 
-- add camera
+- make ros2 topic for each added sensor in gz_sim
+
+- adjust gz_sim enviroment
+
+- rov, model (gz sim)
+    - make it more like our real rov
+    - add better visulaization to it
+
+- server node
+    - node with api that can interact with system
+
+- joystick node
+
+- make connection between topics, blocks auto detected
+
+- at start of dashboard, detect all topics and watch them
+    - add in config file (watch at startup)
+    - watch topics and capture it's data
+
+- dashboard blocks adjustments
+    - block for server node
+    - block mobile
+    - block for joystick
+
+- qos sensore for sensor topics
+    - change it it ros2 nodes
+    - add it for dashboard to configure it
+- adjust backend
+    - sperate blocks apis, manger than flowchart manager
+- frontend
+    - readd publisher & subscriber in nodes blocks
+- config files
+    - for each block descripe what want to show and what not
+- start Ai conroller block

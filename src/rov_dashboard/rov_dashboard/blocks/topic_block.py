@@ -35,6 +35,12 @@ class TopicBlock(BaseBlock):
             'message_type': topic_info.get('message_type', message_type),
             'publishers_count': topic_info.get('publishers_count', 0),
             'subscribers_count': topic_info.get('subscribers_count', 0),
+            'bandwidth_bps': topic_info.get('bandwidth_bps', 0.0),
+            'bandwidth_kbps': topic_info.get('bandwidth_kbps', 0.0),
+            'latest_message_size_bytes': topic_info.get(
+                'latest_message_size_bytes',
+                0,
+            ),
             'last_received_at': topic_info.get('last_received_at'),
             'message_age_seconds': topic_info.get('message_age_seconds'),
             'is_stale': topic_info.get('is_stale', False),
@@ -57,9 +63,9 @@ class TopicBlock(BaseBlock):
 
         watch_result = self.ros_interface.watch_topic(topic_name, message_type)
         topic_info = self.ros_interface.get_topic_info(topic_name)
+        
         latest_message = self.ros_interface.get_latest_topic_data(topic_name)
         status = topic_info.get('status', 'unknown')
-
         if not watch_result.get('success', False):
             status = 'error'
 
@@ -90,5 +96,13 @@ class TopicBlock(BaseBlock):
 
         if show_config.get('frequency', True):
             data['frequency_hz'] = topic_info.get('frequency_hz', 0.0)
+
+        if show_config.get('bandwidth', True):
+            data['bandwidth_bps'] = topic_info.get('bandwidth_bps', 0.0)
+            data['bandwidth_kbps'] = topic_info.get('bandwidth_kbps', 0.0)
+            data['latest_message_size_bytes'] = topic_info.get(
+                'latest_message_size_bytes',
+                0,
+            )
 
         return data

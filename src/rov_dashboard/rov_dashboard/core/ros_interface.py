@@ -10,6 +10,7 @@ from rcl_interfaces.msg import Log
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from rclpy.serialization import serialize_message
 from rosidl_runtime_py.convert import message_to_ordereddict
 from rosidl_runtime_py.utilities import get_message
 
@@ -38,6 +39,7 @@ class RosInterface:
         self._subscriptions: dict[str, Any] = {}
         self._publishers: dict[str, Any] = {}
         self._sample_times: dict[str, deque[float]] = {}
+        self._sample_sizes: dict[str, deque[tuple[float, int]]] = {}
         self._logs: deque[str] = deque(maxlen=200)
         self._rosout_log_handler: Any = None
 
@@ -199,6 +201,21 @@ class RosInterface:
         except Exception:
             return {'raw': str(msg)}
 
+    def _message_size_bytes(
+        self,
+        msg: Any,
+        plain_data: dict[str, Any] | None = None,
+    ) -> int:
+        try:
+            return len(serialize_message(msg))
+        except Exception:
+            data = (
+                plain_data
+                if plain_data is not None
+                else self._message_to_dict(msg)
+            )
+            return len(str(data).encode('utf-8'))
+
     def _calculate_frequency(self, topic_name: str) -> float:
         with self._lock:
             samples = self._sample_times.get(topic_name)
@@ -213,6 +230,37 @@ class RosInterface:
 
             frequency = (len(samples) - 1) / duration
             return round(frequency, 2)
+
+    def _calculate_bandwidth(self, topic_name: str) -> dict[str, float | int]:
+        with self._lock:
+            samples = list(self._sample_sizes.get(topic_name, ()))
+
+        latest_size = samples[-1][1] if samples else 0
+
+        if len(samples) < 2:
+            return {
+                'bandwidth_bps': 0.0,
+                'bandwidth_kbps': 0.0,
+                'latest_message_size_bytes': latest_size,
+            }
+
+        duration = samples[-1][0] - samples[0][0]
+
+        if duration <= 0:
+            return {
+                'bandwidth_bps': 0.0,
+                'bandwidth_kbps': 0.0,
+                'latest_message_size_bytes': latest_size,
+            }
+
+        bytes_per_second = sum(size for _, size in samples[1:]) / duration
+        kilobits_per_second = (bytes_per_second * 8) / 1000
+
+        return {
+            'bandwidth_bps': round(bytes_per_second, 2),
+            'bandwidth_kbps': round(kilobits_per_second, 2),
+            'latest_message_size_bytes': latest_size,
+        }
 
     def _is_own_endpoint(self, endpoint_info: Any) -> bool:
         return (
@@ -309,18 +357,23 @@ class RosInterface:
         with self._lock:
             self._topic_types[topic_name] = message_type
             self._sample_times[topic_name] = deque(maxlen=50)
+            self._sample_sizes[topic_name] = deque(maxlen=50)
 
         def callback(msg: Any) -> None:
             now = time.time()
+            data = self._message_to_dict(msg)
+            size_bytes = self._message_size_bytes(msg, data)
 
             with self._lock:
                 self._sample_times[topic_name].append(now)
+                self._sample_sizes[topic_name].append((now, size_bytes))
                 self._latest_message_times[topic_name] = now
                 self._latest_messages[topic_name] = {
                     'topic': topic_name,
                     'message_type': self._short_message_type(message_type),
                     'message_type_full': message_type,
-                    'data': self._message_to_dict(msg),
+                    'data': data,
+                    'size_bytes': size_bytes,
                     'received_at': self._timestamp(),
                 }
 
@@ -402,6 +455,7 @@ class RosInterface:
         message_age_seconds = self._message_age_seconds(topic_name)
         is_stale = self._is_stale(topic_name)
         last_received_at = latest.get('received_at') if latest else None
+        bandwidth = self._calculate_bandwidth(topic_name)
 
         if has_latest and is_stale:
             status = 'stale'
@@ -434,6 +488,9 @@ class RosInterface:
             'publishers_count': len(publishers),
             'subscribers_count': len(subscribers),
             'frequency_hz': self._calculate_frequency(topic_name),
+            'bandwidth_bps': bandwidth['bandwidth_bps'],
+            'bandwidth_kbps': bandwidth['bandwidth_kbps'],
+            'latest_message_size_bytes': bandwidth['latest_message_size_bytes'],
             'last_received_at': last_received_at,
             'message_age_seconds': message_age_seconds,
             'is_stale': is_stale,

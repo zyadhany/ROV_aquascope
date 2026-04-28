@@ -72,6 +72,7 @@ function getValueEntries(snapshot) {
 function detailRows(block) {
   const rows = [
     ['Description', block.description],
+    ['ID', block.id],
   ];
 
   if (block.ros_topic) {
@@ -188,6 +189,8 @@ function getTopicLiveValues(snapshot) {
     : [];
   const status = topicData.status || snapshot.selectedState?.status || snapshot.topicDataStatus;
   const frequency = Number(topicData.frequency_hz || 0).toFixed(2);
+  const bandwidth = Number(topicData.bandwidth_kbps || 0).toFixed(2);
+  const latestSize = Number(topicData.latest_message_size_bytes || 0);
   const age = topicData.message_age_seconds;
 
   return {
@@ -196,6 +199,8 @@ function getTopicLiveValues(snapshot) {
     publishersCount: String(publishers.length),
     subscribersCount: String(subscribers.length),
     frequency,
+    bandwidth: `${bandwidth} kbps`,
+    latestSize: `${latestSize} B`,
     lastReceived: topicData.last_received_at || 'No message received yet',
     dataAge: age === null || age === undefined ? 'unknown' : `${age}s`,
     stale: topicData.is_stale ? 'true' : 'false',
@@ -232,6 +237,8 @@ function renderTopicLiveData(snapshot) {
         ${renderTopicValueRow('Publishers', 'publishersCount')}
         ${renderTopicValueRow('Subscribers', 'subscribersCount')}
         ${renderTopicValueRow('Frequency Hz', 'frequency')}
+        ${renderTopicValueRow('Bandwidth', 'bandwidth')}
+        ${renderTopicValueRow('Message Size', 'latestSize')}
         ${renderTopicValueRow('Last Received', 'lastReceived')}
         ${renderTopicValueRow('Data Age', 'dataAge')}
         ${renderTopicValueRow('Error', 'error')}

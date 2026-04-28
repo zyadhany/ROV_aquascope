@@ -126,6 +126,21 @@
       }
     },
     {
+      "id": "/topics/camera/image/compressed",
+      "name": "Compressed Image",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Published compressed camera image stream from the Camera Streamer node.",
+      "ros_topic": "/rov/camera/image/compressed",
+      "message_type": "sensor_msgs/CompressedImage",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": false,
+        "frequency": true
+      }
+    },
+    {
       "id": "/topics/pressure/data",
       "name": "Pressure Data",
       "type": "topic",
@@ -368,7 +383,12 @@
     {
       "from": "/nodes/camera_streamer",
       "to": "/topics/camera/image",
-      "label": "published video/image data"
+      "label": "image data"
+    },
+    {
+      "from": "/nodes/camera_streamer",
+      "to": "/topics/camera/image/compressed",
+      "label": "compressed image"
     },
     {
       "from": "/nodes/mcu_gateway",

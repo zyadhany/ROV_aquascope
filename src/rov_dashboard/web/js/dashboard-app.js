@@ -114,9 +114,9 @@ export class DashboardApp {
         label: isTopicBlock(block) ? block.name : `${block.name}\n${formatType(block.type)}`,
         color: this.blockColor(block.type),
         shape: isTopicBlock(block) ? 'ellipse' : 'round-rectangle',
-        width: isTopicBlock(block) ? 108 : 168,
-        height: isTopicBlock(block) ? 108 : 62,
-        textMaxWidth: isTopicBlock(block) ? 84 : 148,
+        width: isTopicBlock(block) ? 132 : 168,
+        height: isTopicBlock(block) ? 58 : 62,
+        textMaxWidth: isTopicBlock(block) ? 108 : 148,
       },
       position: this.flowchartState.layout.positions[block.id] || this.fallbackPosition(index),
     }));

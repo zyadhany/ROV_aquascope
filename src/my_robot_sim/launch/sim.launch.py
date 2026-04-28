@@ -45,7 +45,6 @@ def start_bridge():
                 '/model/rov/joint/right_thruster_joint/cmd_thrust@std_msgs/msg/Float64]gz.msgs.Double',
                 '/rov/ballast_cmd@std_msgs/msg/Int32]gz.msgs.Int32',
                 '/rov/depth/current@std_msgs/msg/Float64[gz.msgs.Double',
-                '/rov/camera/image@sensor_msgs/msg/Image@gz.msgs.Image',
 
                 '--ros-args',
                 '-r', '/model/rov/joint/left_thruster_joint/cmd_thrust:=/sim/left_thruster/cmd',
@@ -57,17 +56,15 @@ def start_bridge():
             output='screen'
         ),
 
-        # Node(
-        #     package='ros_gz_image',
-        #     executable='image_bridge',
-        #     arguments=[
-        #         '/rov/camera/image',
-        #         '--ros-args',
-        #         '-r', '/rov/camera/image:=/sim/camera/image',
-        #     ],
-        #     parameters=[{'qos': 'sensor_data'}],
-        #     output='screen'
-        # ),
+        Node(
+            package='ros_gz_image',
+            executable='image_bridge',
+            arguments=[
+                '/sim/camera/image',
+            ],
+            parameters=[{'qos': 'sensor_data'}],
+            output='screen'
+        ),
         ]
     )
     return [bridge]

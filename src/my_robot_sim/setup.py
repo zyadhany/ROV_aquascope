@@ -37,6 +37,7 @@ setup(
             'server = my_robot_sim.server:main',
             "microcontroller_sim = my_robot_sim.sim.microcontroller_sim:main",
             "mcu_gateway = my_robot_sim.mcu_gateway:main",
+            'camera_streamer = my_robot_sim.camera_streamer:main',
         ],
     },
 )

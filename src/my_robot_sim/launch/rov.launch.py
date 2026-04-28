@@ -35,4 +35,14 @@ def generate_launch_description():
             respawn=True,
             respawn_delay=2.0,
         ),
+
+        Node(
+            package="my_robot_sim",
+            executable="camera_streamer",
+            name="camera_streamer",
+            output="screen",
+            emulate_tty=True,
+            respawn=True,
+            respawn_delay=2.0,
+        ),
     ])
