@@ -9,7 +9,7 @@ from std_msgs.msg import Float64, Int32
 
 class DepthHoldNode(Node):
     def __init__(self) -> None:
-        super().__init__("depth_hold_node")
+        super().__init__("depth_controller")
 
         self.declare_parameter("deadband", 0.01)
         self.declare_parameter("max_depth", 2.0)
@@ -66,7 +66,7 @@ class DepthHoldNode(Node):
 
         self.timer = self.create_timer(1.0 / control_rate_hz, self.control_loop)
 
-        self.get_logger().info("depth_hold_node started")
+        self.get_logger().info("depth_controller started")
         self.get_logger().info(
             f"Pulse controller | pulse={self.pulse_time_sec:.2f}s "
             f"observe_min={self.min_observe_time_sec:.2f}s "

@@ -33,8 +33,8 @@ setup(
         'console_scripts': [
             "rov_controller = my_robot_sim.rov_controller:main",
             "keyboard_controller = my_robot_sim.keyboard:main",
-            'depth_hold_node = my_robot_sim.depth_hold_node:main',
-            'server = my_robot_sim.server:main',
+            'depth_controller = my_robot_sim.depth_controller:main',
+            'gateway_server = my_robot_sim.gateway_server:main',
             "microcontroller_sim = my_robot_sim.sim.microcontroller_sim:main",
             "mcu_gateway = my_robot_sim.mcu_gateway:main",
             'camera_streamer = my_robot_sim.camera_streamer:main',

@@ -28,8 +28,8 @@ def generate_launch_description():
 
         Node(
             package="my_robot_sim",
-            executable="depth_hold_node",
-            name="depth_hold_node",
+            executable="depth_controller",
+            name="depth_controller",
             output="screen",
             emulate_tty=True,
             respawn=True,

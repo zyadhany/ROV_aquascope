@@ -11,20 +11,22 @@
     - IMU
     - ultrasoinc
 
+- make ros2 topic for each added sensor in gz_sim
+
 - from dashboard can start or terminate node
+
 
 - adjust nodes loggers in ros2
 
-- make ros2 topic for each added sensor in gz_sim
 
 - adjust gz_sim enviroment
-
 - rov, model (gz sim)
     - make it more like our real rov
     - add better visulaization to it
 
 - server node
     - node with api that can interact with system
+    - from front button, start or terminate node
 
 - joystick node
 

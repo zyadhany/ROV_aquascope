@@ -315,16 +315,23 @@
       }
     },
     {
-      "id": "/nodes/mobile_app_controller",
-      "name": "Mobile App Controller",
+      "id": "/nodes/gateway_server",
+      "name": "Gateway Server",
       "type": "node",
       "category": "Input Controllers",
       "description": "Mobile app input node that publishes high-level control commands.",
-      "ros_node": "/mobile_app_controller",
+      "ros_node": "/gateway_server",
       "logs": {
-        "source": "/mobile_app_controller",
+        "source": "/gateway_server",
         "level": "info"
       }
+    },
+    {
+      "id": "/hardware/mobile_app",
+      "name": "Mobile App",
+      "type": "interface",
+      "category": "Hardware",
+      "description": "Mobile app interface for controlling the ROV."
     }
   ],
   "connections": [
@@ -479,9 +486,29 @@
       "label": "publishes"
     },
     {
-      "from": "/nodes/mobile_app_controller",
+      "from": "/nodes/gateway_server",
       "to": "/topics/control/command",
       "label": "publishes"
+    },
+    {
+      "from": "/hardware/mobile_app",
+      "to": "/nodes/gateway_server",
+      "label": "API"
+    },
+    {
+      "from": "/nodes/gateway_server",
+      "to": "/hardware/mobile_app",
+      "label": "API"
+    },
+    {
+      "from": "/topics/camera/image",
+      "to": "/nodes/gateway_server",
+      "label": "subscribed"
+    },
+    {
+      "from": "/topics/camera/image/compressed",
+      "to": "/nodes/gateway_server",
+      "label": "subscribed"
     }
   ]
 }
