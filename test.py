@@ -87,7 +87,7 @@ def terminate_ros_node(node_name: str) -> bool:
     print(f"Terminated {ros_node_name}")
     return True
 
-terminate_ros_node("mcu_gateway")
+terminate_ros_node("rov_api_server")
 
 """
 write me short and direct promt for codex
