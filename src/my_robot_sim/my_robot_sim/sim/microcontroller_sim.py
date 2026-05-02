@@ -5,7 +5,7 @@ from collections import deque
 import rclpy
 from rclpy.node import Node
 
-from std_msgs.msg import String, Float64, Int32
+from std_msgs.msg import String, Float64, Int32, Bool
 
 
 class MicrocontrollerSim(Node):
@@ -45,6 +45,12 @@ class MicrocontrollerSim(Node):
             10,
         )
 
+        self.light_pub = self.create_publisher(
+            Bool,
+            "/sim/light/cmd",
+            10,
+        )
+
         # Sensor subscribers
         self.depth_sub = self.create_subscription(
             Float64,
@@ -59,6 +65,7 @@ class MicrocontrollerSim(Node):
         self.left_thruster_value = 0.0
         self.right_thruster_value = 0.0
         self.pump_value = 0
+        self.light_value = False
 
         # Queue instead of one variable.
         # This prevents fast commands from overwriting each other.
@@ -73,7 +80,7 @@ class MicrocontrollerSim(Node):
         self.get_logger().info("Microcontroller simulator started")
         self.get_logger().info(
             "Commands: FORWARD, BACKWARD, LEFT, RIGHT, STOP, "
-            "LEFT_THRUST, RIGHT_THRUST, PUMP, UP, DOWN, HOLD, PING"
+            "LEFT_THRUST, RIGHT_THRUST, PUMP, LIGHT, UP, DOWN, HOLD, PING"
         )
 
     # ========== Fake serial receive ==========
@@ -144,6 +151,19 @@ class MicrocontrollerSim(Node):
                 self.publish_pump()
 
                 self.send_serial(f"OK PUMP {value}")
+
+            elif cmd == "LIGHT":
+                # Example:
+                # LIGHT 1     -> on
+                # LIGHT 0     -> off
+                # LIGHT TRUE  -> on
+                # LIGHT FALSE -> off
+                value = self.parse_bool(parts[1])
+
+                self.light_value = value
+                self.publish_light()
+
+                self.send_serial(f"OK LIGHT {int(value)}")
 
             # =========================
             # Movement commands
@@ -255,6 +275,17 @@ class MicrocontrollerSim(Node):
 
         return float(parts[1])
 
+    def parse_bool(self, value: str) -> bool:
+        normalized = value.upper()
+
+        if normalized in ("1", "ON", "TRUE"):
+            return True
+
+        if normalized in ("0", "OFF", "FALSE"):
+            return False
+
+        raise ValueError
+
     def stop_all(self):
         self.left_thruster_value = 0.0
         self.right_thruster_value = 0.0
@@ -280,6 +311,11 @@ class MicrocontrollerSim(Node):
         msg = Int32()
         msg.data = self.pump_value
         self.pump_pub.publish(msg)
+
+    def publish_light(self):
+        msg = Bool()
+        msg.data = self.light_value
+        self.light_pub.publish(msg)
 
     # ========== Sensor output back to fake serial ==========
 

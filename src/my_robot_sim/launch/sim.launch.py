@@ -45,6 +45,7 @@ def start_bridge():
                 '/model/rov/joint/right_thruster_joint/cmd_thrust@std_msgs/msg/Float64]gz.msgs.Double',
                 '/rov/ballast_cmd@std_msgs/msg/Int32]gz.msgs.Int32',
                 '/rov/depth/current@std_msgs/msg/Float64[gz.msgs.Double',
+                '/rov/light/cmd@std_msgs/msg/Bool]gz.msgs.Boolean',
 
                 '--ros-args',
                 '-r', '/model/rov/joint/left_thruster_joint/cmd_thrust:=/sim/left_thruster/cmd',
@@ -52,6 +53,7 @@ def start_bridge():
                 '-r', '/rov/ballast_cmd:=/sim/ballast_cmd',
                 '-r', '/rov/depth/current:=/sim/depth/current',
                 '-r', '/rov/camera/image:=/sim/camera/image',
+                '-r', '/rov/light/cmd:=/sim/light/cmd',
             ],
             output='screen'
         ),

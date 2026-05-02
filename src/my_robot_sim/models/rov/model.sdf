@@ -223,6 +223,48 @@
         </geometry>
       </visual>
 
+      <!-- Small visible LED body -->
+      <visual name="front_led_visual">
+        <pose>0 0 -0.05 0 1.5708 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.018</radius>
+            <length>0.015</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>1 1 0.4 1</ambient>
+          <diffuse>1 1 0.4 1</diffuse>
+          <emissive>1 1 0.3 1</emissive>
+        </material>
+      </visual>
+
+      <!-- Actual attached spotlight -->
+      <light name="front_led_light" type="spot">
+        <pose>0 0 -0.05 0 0 0</pose>
+
+        <intensity>0.0</intensity>
+        <diffuse>1 1 0.8 1</diffuse>
+        <specular>0.3 0.3 0.3 1</specular>
+        <cast_shadows>true</cast_shadows>
+
+        <attenuation>
+          <range>8</range>
+          <constant>0.5</constant>
+          <linear>0.05</linear>
+          <quadratic>0.01</quadratic>
+        </attenuation>
+
+        <!-- Forward direction of camera_link -->
+        <direction>1 0 0</direction>
+
+        <spot>
+          <inner_angle>0.35</inner_angle>
+          <outer_angle>0.8</outer_angle>
+          <falloff>1.0</falloff>
+        </spot>
+      </light>
+
       <sensor name="front_camera" type="camera">
         <always_on>true</always_on>
         <update_rate>30</update_rate>
@@ -247,6 +289,17 @@
       <parent>base_link</parent>
       <child>camera_link</child>
     </joint>
+
+    <plugin
+      filename="libSpotLightPlugin.so"
+      name="rov_gz_plugins::RovSpotLightPlugin">
+
+      <light_name>front_led_light</light_name>
+      <topic>/rov/light/cmd</topic>
+      <on_intensity>1.0</on_intensity>
+
+    </plugin>
+  
 
   </model>
 </sdf>

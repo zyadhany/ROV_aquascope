@@ -17,8 +17,13 @@ add_library(PressureSensorPlugin SHARED
   src/PressureSensorPlugin.cc
 )
 
+add_library(SpotLightPlugin SHARED
+  src/SpotLightPlugin.cc
+)
+
 set_property(TARGET BallastTankPlugin PROPERTY CXX_STANDARD 17)
 set_property(TARGET PressureSensorPlugin PROPERTY CXX_STANDARD 17)
+set_property(TARGET SpotLightPlugin PROPERTY CXX_STANDARD 17)
 
 target_link_libraries(BallastTankPlugin
   gz-sim8::gz-sim8
@@ -38,9 +43,19 @@ target_link_libraries(PressureSensorPlugin
   gz-math7::gz-math7
 )
 
+target_link_libraries(SpotLightPlugin
+  gz-sim8::gz-sim8
+  gz-plugin2::gz-plugin2
+  gz-plugin2::register
+  gz-transport13::gz-transport13
+  gz-msgs10::gz-msgs10
+  gz-math7::gz-math7
+)
+
 install(TARGETS
   BallastTankPlugin
   PressureSensorPlugin
+  SpotLightPlugin
   LIBRARY DESTINATION lib
 )
 
