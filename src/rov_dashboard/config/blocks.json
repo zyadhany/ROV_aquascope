@@ -315,6 +315,18 @@
       }
     },
     {
+      "id": "/nodes/joystick_controller",
+      "name": "Joystick Controller",
+      "type": "node",
+      "category": "Input Controllers",
+      "description": "Joystick input node that publishes high-level control commands.",
+      "ros_node": "/joystick_controller",
+      "logs": {
+        "source": "/joystick_controller",
+        "level": "info"
+      }
+    },
+    {
       "id": "/topics/control/command",
       "name": "Control Command",
       "type": "topic",
@@ -502,6 +514,11 @@
     },
     {
       "from": "/nodes/keyboard_controller",
+      "to": "/topics/control/command",
+      "label": "publishes"
+    },
+    {
+      "from": "/nodes/joystick_controller",
       "to": "/topics/control/command",
       "label": "publishes"
     },

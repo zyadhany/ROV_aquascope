@@ -33,7 +33,7 @@ FAST_SPEED = 5.0
 DEADZONE = 0.25
 
 # Publish rate
-PUBLISH_HZ = 2.0
+PUBLISH_HZ = 5.0
 
 
 class JoystickController(Node):
