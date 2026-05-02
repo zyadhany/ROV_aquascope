@@ -46,6 +46,7 @@ def start_bridge():
                 '/rov/ballast_cmd@std_msgs/msg/Int32]gz.msgs.Int32',
                 '/rov/depth/current@std_msgs/msg/Float64[gz.msgs.Double',
                 '/rov/light/cmd@std_msgs/msg/Bool]gz.msgs.Boolean',
+                '/rov/imu@sensor_msgs/msg/Imu@gz.msgs.IMU',
 
                 '--ros-args',
                 '-r', '/model/rov/joint/left_thruster_joint/cmd_thrust:=/sim/left_thruster/cmd',
@@ -54,6 +55,7 @@ def start_bridge():
                 '-r', '/rov/depth/current:=/sim/depth/current',
                 '-r', '/rov/camera/image:=/sim/camera/image',
                 '-r', '/rov/light/cmd:=/sim/light/cmd',
+                '-r', '/rov/imu:=/sim/imu',
             ],
             output='screen'
         ),

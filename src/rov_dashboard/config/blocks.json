@@ -204,6 +204,21 @@
       }
     },
     {
+      "id": "/topics/imu",
+      "name": "IMU Data",
+      "type": "topic",
+      "category": "Topics",
+      "description": "IMU data published by the microcontroller through the MCU Gateway.",
+      "ros_topic": "/rov/imu",
+      "message_type": "sensor_msgs/Imu",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
       "id": "/topics/cmd/left_thruster",
       "name": "Left Thruster Command",
       "type": "topic",
@@ -404,6 +419,11 @@
       "from": "/nodes/mcu_gateway",
       "to": "/topics/pressure/data",
       "label": "pressure data"
+    },
+    {
+      "from": "/nodes/mcu_gateway",
+      "to": "/topics/imu",
+      "label": "imu data"
     },
     {
       "from": "/nodes/mcu_gateway",

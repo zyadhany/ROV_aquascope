@@ -37,6 +37,14 @@
           <diffuse>0.9 0.15 0.15 1</diffuse>
         </material>
       </visual>
+
+      <!-- IMU sensor -->
+      <sensor name="imu_sensor" type="imu">
+        <always_on>true</always_on>
+        <update_rate>50</update_rate>
+        <visualize>true</visualize>
+        <topic>/rov/imu</topic>
+      </sensor>
     </link>
 
     <plugin
@@ -297,9 +305,7 @@
       <light_name>front_led_light</light_name>
       <topic>/rov/light/cmd</topic>
       <on_intensity>1.0</on_intensity>
-
     </plugin>
-  
 
   </model>
 </sdf>

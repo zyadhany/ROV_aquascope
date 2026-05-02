@@ -5,6 +5,7 @@ from collections import deque
 import rclpy
 from rclpy.node import Node
 
+from sensor_msgs.msg import Imu
 from std_msgs.msg import String, Float64, Int32, Bool
 
 
@@ -59,8 +60,16 @@ class MicrocontrollerSim(Node):
             10,
         )
 
+        self.imu_sub = self.create_subscription(
+            Imu,
+            "/sim/imu",
+            self.imu_callback,
+            10,
+        )
+
         # Internal state, like ESP variables
         self.latest_depth = 0.0
+        self.latest_imu = None
 
         self.left_thruster_value = 0.0
         self.right_thruster_value = 0.0
@@ -97,6 +106,13 @@ class MicrocontrollerSim(Node):
 
     def depth_callback(self, msg: Float64):
         self.latest_depth = msg.data
+
+    def imu_callback(self, msg: Imu):
+        self.latest_imu = {
+            "orientation": msg.orientation,
+            "angular_velocity": msg.angular_velocity,
+            "linear_acceleration": msg.linear_acceleration,
+        }
 
     # ========== ESP-like main loop ==========
 
@@ -321,6 +337,23 @@ class MicrocontrollerSim(Node):
 
     def send_sensor_data(self):
         self.send_serial(f"DEPTH {self.latest_depth:.3f}")
+
+        if self.latest_imu is None:
+            return
+
+        orientation = self.latest_imu["orientation"]
+        angular_velocity = self.latest_imu["angular_velocity"]
+        linear_acceleration = self.latest_imu["linear_acceleration"]
+
+        self.send_serial(
+            "IMU "
+            f"{orientation.x:.6f} {orientation.y:.6f} "
+            f"{orientation.z:.6f} {orientation.w:.6f} "
+            f"{angular_velocity.x:.6f} {angular_velocity.y:.6f} "
+            f"{angular_velocity.z:.6f} "
+            f"{linear_acceleration.x:.6f} {linear_acceleration.y:.6f} "
+            f"{linear_acceleration.z:.6f}"
+        )
 
     # ========== Fake serial write ==========
 

@@ -39,6 +39,10 @@
       <direction>-0.4 0.2 -1</direction>
     </light>
 
+    <plugin filename="gz-sim-imu-system"
+      name="gz::sim::systems::Imu">
+    </plugin>
+
     <include>
       <uri>model://home/zyadhany/ros2_ws/src/my_robot_sim/models/bool</uri>
     </include>

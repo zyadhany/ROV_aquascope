@@ -3,6 +3,7 @@
 import rclpy
 from rclpy.node import Node
 
+from sensor_msgs.msg import Imu
 from std_msgs.msg import String, Float64, Int32, Bool
 
 
@@ -27,6 +28,12 @@ class McuGateway(Node):
         self.pressure_pub = self.create_publisher(
             Float64,
             "/rov/pressure/data",
+            10,
+        )
+
+        self.imu_pub = self.create_publisher(
+            Imu,
+            "/rov/imu",
             10,
         )
 
@@ -117,6 +124,9 @@ class McuGateway(Node):
             elif key == "PRESSURE":
                 self.publish_pressure(float(value_text))
 
+            elif key == "IMU":
+                self.publish_imu(parts[1:])
+
             elif key == "OK":
                 self.get_logger().info(text)
 
@@ -138,6 +148,39 @@ class McuGateway(Node):
         msg = Float64()
         msg.data = value
         self.pressure_pub.publish(msg)
+
+    def publish_imu(self, values):
+        if len(values) != 10:
+            raise ValueError
+
+        (
+            orientation_x,
+            orientation_y,
+            orientation_z,
+            orientation_w,
+            angular_velocity_x,
+            angular_velocity_y,
+            angular_velocity_z,
+            linear_acceleration_x,
+            linear_acceleration_y,
+            linear_acceleration_z,
+        ) = [float(value) for value in values]
+
+        msg = Imu()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = "imu_link"
+        msg.orientation.x = orientation_x
+        msg.orientation.y = orientation_y
+        msg.orientation.z = orientation_z
+        msg.orientation.w = orientation_w
+        msg.angular_velocity.x = angular_velocity_x
+        msg.angular_velocity.y = angular_velocity_y
+        msg.angular_velocity.z = angular_velocity_z
+        msg.linear_acceleration.x = linear_acceleration_x
+        msg.linear_acceleration.y = linear_acceleration_y
+        msg.linear_acceleration.z = linear_acceleration_z
+
+        self.imu_pub.publish(msg)
 
 
 def main(args=None):
