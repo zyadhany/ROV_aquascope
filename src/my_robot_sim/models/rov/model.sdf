@@ -45,6 +45,41 @@
         <visualize>true</visualize>
         <topic>/rov/imu</topic>
       </sensor>
+
+      <sensor name="scanning_sonar_internal_sensor" type="gpu_lidar">
+        <pose>0 0 0 0 0 0</pose>
+
+        <!-- Internal topic. Dashboard should NOT use this directly. -->
+        <topic>/rov/scanning_sonar/internal_scan</topic>
+
+        <update_rate>30</update_rate>
+        <always_on>1</always_on>
+        <visualize>false</visualize>
+
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>720</samples>
+              <resolution>1</resolution>
+              <min_angle>-3.1416</min_angle>
+              <max_angle>3.1416</max_angle>
+            </horizontal>
+
+            <vertical>
+              <samples>1</samples>
+              <resolution>1</resolution>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
+            </vertical>
+          </scan>
+
+          <range>
+            <min>0.10</min>
+            <max>8.0</max>
+            <resolution>0.01</resolution>
+          </range>
+        </ray>
+      </sensor>
     </link>
 
     <plugin
@@ -139,6 +174,333 @@
           <lower>-1e16</lower>
           <upper>1e16</upper>
         </limit>
+      </axis>
+    </joint>
+
+    <!-- ================= TUTORIAL-STYLE GRIPPER ================= -->
+
+    <link name="gripper_palm">
+      <pose relative_to="base_link">0.22 0 -0.05 0 0 0</pose>
+
+      <inertial>
+        <mass>0.192</mass>
+        <inertia>
+          <ixx>0.00005</ixx>
+          <iyy>0.00005</iyy>
+          <izz>0.00005</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.04 0.12 0.04</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.04 0.12 0.04</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.15 0.15 0.15 1</ambient>
+          <diffuse>0.15 0.15 0.15 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="gripper_palm_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>gripper_palm</child>
+    </joint>
+
+    <link name="left_gripper_finger">
+      <pose relative_to="base_link">0.27 0.075 -0.05 0 0 -0.45</pose>
+
+      <inertial>
+        <mass>0.182</mass>
+        <inertia>
+          <ixx>0.00003</ixx>
+          <iyy>0.00003</iyy>
+          <izz>0.00003</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.04 0.13 0.035</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>3.0</mu>
+              <mu2>3.0</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>6000</kp>
+              <kd>80</kd>
+              <max_vel>0.05</max_vel>
+              <min_depth>0.001</min_depth>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.04 0.13 0.035</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.05 0.05 0.05 1</ambient>
+          <diffuse>0.05 0.05 0.05 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <link name="left_gripper_tip">
+      <pose relative_to="base_link">0.36 0.095 -0.05 0 0 0.75</pose>
+
+      <inertial>
+        <mass>0.126</mass>
+        <inertia>
+          <ixx>0.00002</ixx>
+          <iyy>0.00002</iyy>
+          <izz>0.00002</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.04 0.09 0.035</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>3.0</mu>
+              <mu2>3.0</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>6000</kp>
+              <kd>80</kd>
+              <max_vel>0.05</max_vel>
+              <min_depth>0.001</min_depth>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.04 0.09 0.035</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.05 0.05 0.05 1</ambient>
+          <diffuse>0.05 0.05 0.05 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <link name="right_gripper_finger">
+      <pose relative_to="base_link">0.27 -0.075 -0.05 0 0 0.45</pose>
+
+      <inertial>
+        <mass>0.182</mass>
+        <inertia>
+          <ixx>0.00003</ixx>
+          <iyy>0.00003</iyy>
+          <izz>0.00003</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.04 0.13 0.035</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>3.0</mu>
+              <mu2>3.0</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>6000</kp>
+              <kd>80</kd>
+              <max_vel>0.05</max_vel>
+              <min_depth>0.001</min_depth>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.04 0.13 0.035</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.05 0.05 0.05 1</ambient>
+          <diffuse>0.05 0.05 0.05 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <link name="right_gripper_tip">
+      <pose relative_to="base_link">0.36 -0.095 -0.05 0 0 -0.75</pose>
+
+      <inertial>
+        <mass>0.126</mass>
+        <inertia>
+          <ixx>0.00002</ixx>
+          <iyy>0.00002</iyy>
+          <izz>0.00002</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.04 0.09 0.035</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>3.0</mu>
+              <mu2>3.0</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>6000</kp>
+              <kd>80</kd>
+              <max_vel>0.05</max_vel>
+              <min_depth>0.001</min_depth>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.04 0.09 0.035</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.05 0.05 0.05 1</ambient>
+          <diffuse>0.05 0.05 0.05 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="palm_left_finger_joint" type="revolute">
+      <parent>gripper_palm</parent>
+      <child>left_gripper_finger</child>
+      <pose relative_to="base_link">0.235 0.055 -0.05 0 0 0</pose>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-0.7</lower>
+          <upper>0.7</upper>
+          <effort>1.5</effort>
+          <velocity>0.6</velocity>
+        </limit>
+        <dynamics>
+          <damping>0.8</damping>
+          <friction>0.2</friction>
+        </dynamics>
+      </axis>
+    </joint>
+
+    <joint name="left_finger_tip_joint" type="revolute">
+      <parent>left_gripper_finger</parent>
+      <child>left_gripper_tip</child>
+      <pose relative_to="base_link">0.32 0.10 -0.05 0 0 0</pose>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-0.7</lower>
+          <upper>0.7</upper>
+          <effort>1.0</effort>
+          <velocity>0.6</velocity>
+        </limit>
+        <dynamics>
+          <damping>0.8</damping>
+          <friction>0.2</friction>
+        </dynamics>
+      </axis>
+    </joint>
+
+    <joint name="palm_right_finger_joint" type="revolute">
+      <parent>gripper_palm</parent>
+      <child>right_gripper_finger</child>
+      <pose relative_to="base_link">0.235 -0.055 -0.05 0 0 0</pose>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-0.7</lower>
+          <upper>0.7</upper>
+          <effort>1.5</effort>
+          <velocity>0.6</velocity>
+        </limit>
+        <dynamics>
+          <damping>0.8</damping>
+          <friction>0.2</friction>
+        </dynamics>
+      </axis>
+    </joint>
+
+    <joint name="right_finger_tip_joint" type="revolute">
+      <parent>right_gripper_finger</parent>
+      <child>right_gripper_tip</child>
+      <pose relative_to="base_link">0.32 -0.10 -0.05 0 0 0</pose>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-0.7</lower>
+          <upper>0.7</upper>
+          <effort>1.0</effort>
+          <velocity>0.6</velocity>
+        </limit>
+        <dynamics>
+          <damping>0.8</damping>
+          <friction>0.2</friction>
+        </dynamics>
       </axis>
     </joint>
 
@@ -307,6 +669,47 @@
       <on_intensity>1.0</on_intensity>
     </plugin>
 
+    <plugin
+      filename="libScanningSonarPlugin.so"
+      name="rov_gz_plugins::ScanningSonarPlugin">
+
+      <input_scan_topic>/rov/scanning_sonar/internal_scan</input_scan_topic>
+      <topic>/rov/scanning_sonar/reading</topic>
+
+      <!-- Radians: -180 deg to +180 deg -->
+      <min_angle>-3.1416</min_angle>
+      <max_angle>3.1416</max_angle>
+
+      <!-- Messages per second -->
+      <frequency>10</frequency>
+
+      <!-- 5 degrees per message = full scan in about 7.2 seconds at 10 Hz -->
+      <angle_step>0.0873</angle_step>
+
+      <min_distance>0.10</min_distance>
+      <max_distance>8.0</max_distance>
+      <resolution>0.01</resolution>
+
+      <!-- Optional -->
+      <noise_stddev>0.02</noise_stddev>
+      <ping_pong>false</ping_pong>
+    </plugin>
+
+    <!-- ================= FORCE-BASED GRIPPER PLUGIN ================= -->
+
+    <plugin
+      filename="libRovGripperPlugin.so"
+      name="rov_gz_plugins::RovGripperPlugin">
+
+      <topic>/rov/gripper/open_cmd</topic>
+
+      <left_joint>palm_left_finger_joint</left_joint>
+      <right_joint>palm_right_finger_joint</right_joint>
+
+      <main_force>5.0</main_force>
+
+      <left_close_sign>-1</left_close_sign>
+      <right_close_sign>1</right_close_sign>
+    </plugin>
   </model>
 </sdf>
-

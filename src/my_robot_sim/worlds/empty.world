@@ -21,15 +21,13 @@
         </density_change>
       </graded_buoyancy>
       <enable>ROV</enable>
+      <enable>grab_test_box</enable>
     </plugin>
 
     <plugin filename="gz-sim-sensors-system"
             name="gz::sim::systems::Sensors">
       <render_engine>ogre2</render_engine>
     </plugin>
-
-    <plugin filename="gz-sim-scene-broadcaster-system"
-            name="gz::sim::systems::SceneBroadcaster"/>
 
     <light name="sun" type="directional">
       <cast_shadows>true</cast_shadows>
@@ -49,6 +47,10 @@
 
     <include>
       <uri>model://home/zyadhany/ros2_ws/src/my_robot_sim/models/rov</uri>
+    </include>
+
+    <include>
+      <uri>model://home/zyadhany/ros2_ws/src/my_robot_sim/models/object</uri>
     </include>
 
   </world>

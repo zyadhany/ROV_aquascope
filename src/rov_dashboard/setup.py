@@ -5,6 +5,22 @@ from setuptools import find_packages, setup
 
 package_name = 'rov_dashboard'
 
+
+def package_files(directory):
+    data_files = []
+    for dirpath, _, filenames in os.walk(directory):
+        files = [
+            os.path.join(dirpath, filename)
+            for filename in sorted(filenames)
+        ]
+        if files:
+            data_files.append((
+                os.path.join('share', package_name, dirpath),
+                files,
+            ))
+    return data_files
+
+
 setup(
     name=package_name,
     version='0.0.0',
@@ -14,9 +30,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'config'), glob('config/*.json')),
-        (os.path.join('share', package_name, 'web'), glob('web/*')),
-        (os.path.join('share', package_name, 'web'), glob('web/js/*')),
-    ],
+    ] + package_files('web'),
     install_requires=['setuptools', 'fastapi', 'uvicorn'],
     zip_safe=True,
     maintainer='zyadhany',

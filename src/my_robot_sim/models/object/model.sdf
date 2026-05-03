@@ -1,0 +1,86 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <model name="grab_test_box">
+    <!-- Put object in front of ROV gripper -->
+    <pose>0.55 0 -0.45 0 0 0</pose>
+
+    <static>false</static>
+
+    <link name="box_link">
+      <inertial>
+        <!-- 0.06 * 0.06 * 0.06 = 0.000216 m^3 -->
+        <!-- Neutral mass in water ≈ 0.216 kg -->
+        <mass>0.6</mass>
+        <inertia>
+          <ixx>0.000132</ixx>
+          <iyy>0.000132</iyy>
+          <izz>0.000132</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <collision name="box_collision">
+        <geometry>
+          <box>
+            <size>0.06 0.06 0.3</size>
+          </box>
+        </geometry>
+
+        <surface>
+          <friction>
+            <ode>
+              <mu>2.0</mu>
+              <mu2>2.0</mu2>
+            </ode>
+          </friction>
+
+          <contact>
+            <ode>
+              <kp>100000</kp>
+              <kd>10</kd>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+
+      <visual name="box_visual">
+        <geometry>
+          <box>
+            <size>0.06 0.06 0.3</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.4 1.0 1</ambient>
+          <diffuse>0.1 0.4 1.0 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <!-- Hydrodynamic water damping for test object -->
+    <plugin
+      filename="gz-sim-hydrodynamics-system"
+      name="gz::sim::systems::Hydrodynamics">
+
+      <link_name>box_link</link_name>
+      <water_density>1000</water_density>
+
+      <!-- Linear damping -->
+      <xU>-1.0</xU>
+      <yV>-1.0</yV>
+      <zW>-1.0</zW>
+      <kP>-0.05</kP>
+      <mQ>-0.05</mQ>
+      <nR>-0.05</nR>
+
+      <!-- Quadratic damping -->
+      <xUabsU>-2.0</xUabsU>
+      <yVabsV>-2.0</yVabsV>
+      <zWabsW>-2.0</zWabsW>
+      <kPabsP>-0.01</kPabsP>
+      <mQabsQ>-0.01</mQabsQ>
+      <nRabsR>-0.01</nRabsR>
+    </plugin>
+  </model>
+</sdf>

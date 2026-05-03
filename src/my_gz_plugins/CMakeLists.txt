@@ -21,9 +21,19 @@ add_library(SpotLightPlugin SHARED
   src/SpotLightPlugin.cc
 )
 
+add_library(ScanningSonarPlugin SHARED
+  src/ScanningSonarPlugin.cc
+)
+
+add_library(RovGripperPlugin SHARED
+  src/RovGripperPlugin.cc
+)
+
 set_property(TARGET BallastTankPlugin PROPERTY CXX_STANDARD 17)
 set_property(TARGET PressureSensorPlugin PROPERTY CXX_STANDARD 17)
 set_property(TARGET SpotLightPlugin PROPERTY CXX_STANDARD 17)
+set_property(TARGET ScanningSonarPlugin PROPERTY CXX_STANDARD 17)
+set_property(TARGET RovGripperPlugin PROPERTY CXX_STANDARD 17)
 
 target_link_libraries(BallastTankPlugin
   gz-sim8::gz-sim8
@@ -52,10 +62,30 @@ target_link_libraries(SpotLightPlugin
   gz-math7::gz-math7
 )
 
+target_link_libraries(ScanningSonarPlugin
+  gz-sim8::gz-sim8
+  gz-plugin2::gz-plugin2
+  gz-plugin2::register
+  gz-transport13::gz-transport13
+  gz-msgs10::gz-msgs10
+  gz-math7::gz-math7
+)
+
+target_link_libraries(RovGripperPlugin
+  gz-sim8::gz-sim8
+  gz-plugin2::gz-plugin2
+  gz-plugin2::register
+  gz-transport13::gz-transport13
+  gz-msgs10::gz-msgs10
+  gz-math7::gz-math7
+)
+
 install(TARGETS
   BallastTankPlugin
   PressureSensorPlugin
   SpotLightPlugin
+  ScanningSonarPlugin
+  RovGripperPlugin
   LIBRARY DESTINATION lib
 )
 
