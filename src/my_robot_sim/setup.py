@@ -4,6 +4,25 @@ from setuptools import find_packages, setup
 
 package_name = 'my_robot_sim'
 
+
+def package_files(directory):
+    data_files = []
+
+    for dirpath, _, filenames in os.walk(directory):
+        files = [
+            os.path.join(dirpath, filename)
+            for filename in sorted(filenames)
+        ]
+
+        if files:
+            data_files.append((
+                os.path.join('share', package_name, dirpath),
+                files,
+            ))
+
+    return data_files
+
+
 setup(
     name=package_name,
     version='0.0.0',
@@ -14,8 +33,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', 'my_robot_sim', 'launch'), glob('launch/*.launch.py')),
         (os.path.join('share', 'my_robot_sim', 'worlds'), glob('worlds/*')),
-        (os.path.join('share', 'my_robot_sim', 'models', 'simple_bot'), glob('models/simple_bot/*')),
-    ],
+    ] + package_files('models'),
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='zyadhany',

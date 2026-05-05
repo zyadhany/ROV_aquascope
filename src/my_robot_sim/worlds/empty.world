@@ -42,15 +42,15 @@
     </plugin>
 
     <include>
-      <uri>model://home/zyadhany/ros2_ws/src/my_robot_sim/models/bool</uri>
+      <uri>model://bool</uri>
     </include>
 
     <include>
-      <uri>model://home/zyadhany/ros2_ws/src/my_robot_sim/models/rov</uri>
+      <uri>model://rov</uri>
     </include>
 
     <include>
-      <uri>model://home/zyadhany/ros2_ws/src/my_robot_sim/models/object</uri>
+      <uri>model://object</uri>
     </include>
 
   </world>

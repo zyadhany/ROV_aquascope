@@ -1,10 +1,14 @@
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, TimerAction
+from launch.actions import AppendEnvironmentVariable, ExecuteProcess, TimerAction
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_prefix
 from ament_index_python.packages import get_package_share_directory
 import os
 
 pkg_share = get_package_share_directory('my_robot_sim')
+plugin_prefix = get_package_prefix('my_gz_plugins')
+models_path = os.path.join(pkg_share, 'models')
+plugins_path = os.path.join(plugin_prefix, 'lib')
 
 def start_gazebo():
     world_path = os.path.join(pkg_share, 'worlds', 'empty.world')
@@ -93,6 +97,20 @@ def ros_node():
 def generate_launch_description():
 
     cmd_lunch = []
+    cmd_lunch.append(
+        AppendEnvironmentVariable(
+            'GZ_SIM_RESOURCE_PATH',
+            models_path,
+            prepend=True,
+        )
+    )
+    cmd_lunch.append(
+        AppendEnvironmentVariable(
+            'GZ_SIM_SYSTEM_PLUGIN_PATH',
+            plugins_path,
+            prepend=True,
+        )
+    )
     cmd_lunch.extend(start_gazebo())
     cmd_lunch.extend(start_bridge())
     cmd_lunch.extend(ros_node())
