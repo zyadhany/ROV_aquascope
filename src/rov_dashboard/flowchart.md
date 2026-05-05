@@ -69,16 +69,22 @@ name: Left Thruster Command
 id: topics/cmd/left_thruster
 type: topic
 ros2_topic: /rov/mcu/cmd/left_thruster
+message_type: std_msgs/Float64
+range: [-1.0, 1.0]
 
 name: Right Thruster Command
 id: topics/cmd/right_thruster
 type: topic
 ros2_topic: /rov/mcu/cmd/right_thruster
+message_type: std_msgs/Float64
+range: [-1.0, 1.0]
 
 name: Pump Command
 id: topics/cmd/pump
 type: topic
 ros2_topic: /rov/mcu/cmd/pump
+message_type: std_msgs/Float64
+range: [-1.0, 1.0]
 
 name: Light Command
 id: topics/cmd/light

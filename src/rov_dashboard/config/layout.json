@@ -26,6 +26,10 @@
       "x": 1869.8264145421356,
       "y": 1487.1277359789044
     },
+    "/hardware/actuators/gripper": {
+      "x": 1870.0,
+      "y": 1575.0
+    },
     "/hardware/sensors/camera": {
       "x": 1648.2115047132575,
       "y": 1489.7625932581345
@@ -37,6 +41,10 @@
     "/hardware/sensors/pressure_sensor": {
       "x": 2242.7007065480607,
       "y": 1488.212762338193
+    },
+    "/hardware/sensors/sonar": {
+      "x": 2243.0,
+      "y": 1575.0
     },
     "/nodes/mcu_gateway": {
       "x": 2137.017307622958,
@@ -82,6 +90,14 @@
       "x": 2444.314603158704,
       "y": 1029.8178568037488
     },
+    "/topics/sonar/reading": {
+      "x": 2444.0,
+      "y": 1116.0
+    },
+    "/topics/front_distance": {
+      "x": 2444.0,
+      "y": 1202.0
+    },
     "/topics/cmd/left_thruster": {
       "x": 1727.4837743769576,
       "y": 1119.2436946050761
@@ -97,6 +113,10 @@
     "/topics/cmd/light": {
       "x": 1726.4880359183585,
       "y": 1003.308407467607
+    },
+    "/topics/cmd/gripper": {
+      "x": 1726.0,
+      "y": 930.0
     },
     "/nodes/depth_controller": {
       "x": 2138.3720477681113,
@@ -135,7 +155,8 @@
       "priority": 10,
       "block_ids": [
         "/nodes/keyboard_controller",
-        "/nodes/mobile_app_controller"
+        "/nodes/joystick_controller",
+        "/nodes/gateway_server"
       ]
     },
     {
@@ -148,7 +169,8 @@
         "/topics/cmd/left_thruster",
         "/topics/cmd/right_thruster",
         "/topics/cmd/pump",
-        "/topics/cmd/light"
+        "/topics/cmd/light",
+        "/topics/cmd/gripper"
       ]
     },
     {
@@ -180,7 +202,8 @@
         "/hardware/actuators/left_thruster",
         "/hardware/actuators/right_thruster",
         "/hardware/actuators/pump",
-        "/hardware/actuators/light"
+        "/hardware/actuators/light",
+        "/hardware/actuators/gripper"
       ]
     },
     {
@@ -191,7 +214,8 @@
       "block_ids": [
         "/hardware/sensors/camera",
         "/hardware/sensors/imu",
-        "/hardware/sensors/pressure_sensor"
+        "/hardware/sensors/pressure_sensor",
+        "/hardware/sensors/sonar"
       ]
     },
     {
@@ -204,7 +228,9 @@
         "/topics/pressure/data",
         "/topics/depth/current",
         "/topics/depth/target",
-        "/topics/depth/error"
+        "/topics/depth/error",
+        "/topics/sonar/reading",
+        "/topics/front_distance"
       ]
     },
     {

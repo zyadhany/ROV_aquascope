@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 
 from collections import deque
+import math
 
 import rclpy
 from rclpy.node import Node
 
 from sensor_msgs.msg import Imu
-from std_msgs.msg import String, Float64, Int32, Bool
+from std_msgs.msg import String, Float64, Bool
+
+
+MAX_THRUSTER_SPEED = 8.0
 
 
 class MicrocontrollerSim(Node):
@@ -41,7 +45,7 @@ class MicrocontrollerSim(Node):
         )
 
         self.pump_pub = self.create_publisher(
-            Int32,
+            Float64,
             "/sim/ballast_cmd",
             10,
         )
@@ -49,6 +53,12 @@ class MicrocontrollerSim(Node):
         self.light_pub = self.create_publisher(
             Bool,
             "/sim/light/cmd",
+            10,
+        )
+
+        self.gripper_pub = self.create_publisher(
+            Bool,
+            "/sim/gripper/open_cmd",
             10,
         )
 
@@ -67,14 +77,23 @@ class MicrocontrollerSim(Node):
             10,
         )
 
+        self.sonar_sub = self.create_subscription(
+            String,
+            "/sim/scanning_sonar/reading",
+            self.sonar_callback,
+            10,
+        )
+
         # Internal state, like ESP variables
         self.latest_depth = 0.0
         self.latest_imu = None
+        self.latest_sonar = None
 
         self.left_thruster_value = 0.0
         self.right_thruster_value = 0.0
-        self.pump_value = 0
+        self.pump_value = 0.0
         self.light_value = False
+        self.gripper_open = True
 
         # Queue instead of one variable.
         # This prevents fast commands from overwriting each other.
@@ -87,9 +106,11 @@ class MicrocontrollerSim(Node):
         self.sensor_timer = self.create_timer(0.2, self.send_sensor_data)  # 5 Hz
 
         self.get_logger().info("Microcontroller simulator started")
+        self.get_logger().info(f"Max thruster speed: {MAX_THRUSTER_SPEED}")
         self.get_logger().info(
             "Commands: FORWARD, BACKWARD, LEFT, RIGHT, STOP, "
-            "LEFT_THRUST, RIGHT_THRUST, PUMP, LIGHT, UP, DOWN, HOLD, PING"
+            "LEFT_THRUST, RIGHT_THRUST, PUMP, LIGHT, GRIPPER, "
+            "UP, DOWN, HOLD, PING"
         )
 
     # ========== Fake serial receive ==========
@@ -113,6 +134,9 @@ class MicrocontrollerSim(Node):
             "angular_velocity": msg.angular_velocity,
             "linear_acceleration": msg.linear_acceleration,
         }
+
+    def sonar_callback(self, msg: String):
+        self.latest_sonar = msg.data
 
     # ========== ESP-like main loop ==========
 
@@ -139,7 +163,7 @@ class MicrocontrollerSim(Node):
             if cmd == "LEFT_THRUST":
                 # Example:
                 # LEFT_THRUST 1.0
-                value = float(parts[1])
+                value = self.clamp_thruster(float(parts[1]))
 
                 self.left_thruster_value = value
                 self.publish_left_thruster()
@@ -149,7 +173,7 @@ class MicrocontrollerSim(Node):
             elif cmd == "RIGHT_THRUST":
                 # Example:
                 # RIGHT_THRUST 1.0
-                value = float(parts[1])
+                value = self.clamp_thruster(float(parts[1]))
 
                 self.right_thruster_value = value
                 self.publish_right_thruster()
@@ -158,10 +182,12 @@ class MicrocontrollerSim(Node):
 
             elif cmd == "PUMP":
                 # Example:
-                # PUMP 0  -> stop / hold
-                # PUMP 1  -> fill
-                # PUMP 2  -> empty
-                value = int(parts[1])
+                # PUMP 1.0   -> fill at full rate
+                # PUMP 0.5   -> fill at half rate
+                # PUMP 0.0   -> stop / hold
+                # PUMP -0.5  -> empty at half rate
+                # PUMP -1.0  -> empty at full rate
+                value = self.clamp_ballast(float(parts[1]))
 
                 self.pump_value = value
                 self.publish_pump()
@@ -180,6 +206,19 @@ class MicrocontrollerSim(Node):
                 self.publish_light()
 
                 self.send_serial(f"OK LIGHT {int(value)}")
+
+            elif cmd == "GRIPPER":
+                # Example:
+                # GRIPPER 1     -> open
+                # GRIPPER 0     -> close
+                # GRIPPER TRUE  -> open
+                # GRIPPER FALSE -> close
+                value = self.parse_bool(parts[1])
+
+                self.gripper_open = value
+                self.publish_gripper()
+
+                self.send_serial(f"OK GRIPPER {int(value)}")
 
             # =========================
             # Movement commands
@@ -249,23 +288,21 @@ class MicrocontrollerSim(Node):
 
             elif cmd == "UP":
                 # Empty ballast tank.
-                # In your system: 2 = empty.
-                self.pump_value = 2
+                self.pump_value = -1.0
                 self.publish_pump()
 
                 self.send_serial("OK UP")
 
             elif cmd == "DOWN":
                 # Fill ballast tank.
-                # In your system: 1 = fill.
-                self.pump_value = 1
+                self.pump_value = 1.0
                 self.publish_pump()
 
                 self.send_serial("OK DOWN")
 
             elif cmd == "HOLD":
                 # Stop pump, keep current movement motors as they are.
-                self.pump_value = 0
+                self.pump_value = 0.0
                 self.publish_pump()
 
                 self.send_serial("OK HOLD")
@@ -287,9 +324,9 @@ class MicrocontrollerSim(Node):
 
     def get_optional_float(self, parts, default: float) -> float:
         if len(parts) < 2:
-            return default
+            return self.clamp_thruster(default)
 
-        return float(parts[1])
+        return self.clamp_thruster(float(parts[1]))
 
     def parse_bool(self, value: str) -> bool:
         normalized = value.upper()
@@ -302,10 +339,22 @@ class MicrocontrollerSim(Node):
 
         raise ValueError
 
+    def clamp_ballast(self, value: float) -> float:
+        if not math.isfinite(value):
+            raise ValueError
+
+        return max(-1.0, min(1.0, value))
+
+    def clamp_thruster(self, value: float) -> float:
+        if not math.isfinite(value):
+            raise ValueError
+
+        return max(-1.0, min(1.0, value))
+
     def stop_all(self):
         self.left_thruster_value = 0.0
         self.right_thruster_value = 0.0
-        self.pump_value = 0
+        self.pump_value = 0.0
 
         self.publish_left_thruster()
         self.publish_right_thruster()
@@ -315,16 +364,16 @@ class MicrocontrollerSim(Node):
 
     def publish_left_thruster(self):
         msg = Float64()
-        msg.data = self.left_thruster_value
+        msg.data = self.left_thruster_value * MAX_THRUSTER_SPEED
         self.left_thruster_pub.publish(msg)
 
     def publish_right_thruster(self):
         msg = Float64()
-        msg.data = self.right_thruster_value
+        msg.data = self.right_thruster_value * MAX_THRUSTER_SPEED
         self.right_thruster_pub.publish(msg)
 
     def publish_pump(self):
-        msg = Int32()
+        msg = Float64()
         msg.data = self.pump_value
         self.pump_pub.publish(msg)
 
@@ -333,10 +382,18 @@ class MicrocontrollerSim(Node):
         msg.data = self.light_value
         self.light_pub.publish(msg)
 
+    def publish_gripper(self):
+        msg = Bool()
+        msg.data = self.gripper_open
+        self.gripper_pub.publish(msg)
+
     # ========== Sensor output back to fake serial ==========
 
     def send_sensor_data(self):
         self.send_serial(f"DEPTH {self.latest_depth:.3f}")
+
+        if self.latest_sonar is not None:
+            self.send_serial(f"SONAR {self.latest_sonar}")
 
         if self.latest_imu is None:
             return

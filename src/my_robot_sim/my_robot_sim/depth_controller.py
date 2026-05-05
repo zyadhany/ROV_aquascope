@@ -4,7 +4,7 @@ from typing import Optional
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float64, Int32
+from std_msgs.msg import Float64
 
 
 class DepthHoldNode(Node):
@@ -16,9 +16,9 @@ class DepthHoldNode(Node):
         self.declare_parameter("sensor_timeout_sec", 0.2)
         self.declare_parameter("control_rate_hz", 10.0)
 
-        self.declare_parameter("fill_cmd", 1)
-        self.declare_parameter("empty_cmd", 2)
-        self.declare_parameter("stop_cmd", 0)
+        self.declare_parameter("fill_cmd", 1.0)
+        self.declare_parameter("empty_cmd", -1.0)
+        self.declare_parameter("stop_cmd", 0.0)
 
         # Pulse-based ballast control
         self.declare_parameter("pulse_time_sec", 0.5)
@@ -31,9 +31,9 @@ class DepthHoldNode(Node):
         self.sensor_timeout_sec = float(self.get_parameter("sensor_timeout_sec").value)
         control_rate_hz = float(self.get_parameter("control_rate_hz").value)
 
-        self.fill_cmd = int(self.get_parameter("fill_cmd").value)
-        self.empty_cmd = int(self.get_parameter("empty_cmd").value)
-        self.stop_cmd = int(self.get_parameter("stop_cmd").value)
+        self.fill_cmd = float(self.get_parameter("fill_cmd").value)
+        self.empty_cmd = float(self.get_parameter("empty_cmd").value)
+        self.stop_cmd = float(self.get_parameter("stop_cmd").value)
 
         self.pulse_time_sec = float(self.get_parameter("pulse_time_sec").value)
         self.min_observe_time_sec = float(self.get_parameter("min_observe_time_sec").value)
@@ -43,7 +43,7 @@ class DepthHoldNode(Node):
         self.current_depth: Optional[float] = None
         self.target_depth: Optional[float] = None
         self.last_depth_time = None
-        self.last_cmd: Optional[int] = None
+        self.last_cmd: Optional[float] = None
 
         self.prev_depth: Optional[float] = None
 
@@ -61,7 +61,7 @@ class DepthHoldNode(Node):
         self.create_subscription(Float64, "/rov/depth/current", self.depth_callback, 10)
         self.create_subscription(Float64, "/rov/depth/target", self.target_callback, 10)
 
-        self.cmd_pub = self.create_publisher(Int32, "/rov/mcu/cmd/pump", 10)
+        self.cmd_pub = self.create_publisher(Float64, "/rov/mcu/cmd/pump", 10)
         self.error_pub = self.create_publisher(Float64, "/rov/depth/error", 10)
 
         self.timer = self.create_timer(1.0 / control_rate_hz, self.control_loop)
@@ -91,11 +91,13 @@ class DepthHoldNode(Node):
         self.target_depth = target
         self.get_logger().info(f"Target depth: {self.target_depth:.2f} m")
 
-    def publish_cmd(self, value: int) -> None:
+    def publish_cmd(self, value: float) -> None:
+        value = max(-1.0, min(1.0, value))
+
         if self.last_cmd == value:
             return
 
-        msg = Int32()
+        msg = Float64()
         msg.data = value
         self.cmd_pub.publish(msg)
         self.last_cmd = value
@@ -117,7 +119,7 @@ class DepthHoldNode(Node):
         self.desired_direction = 0
         self.publish_cmd(self.stop_cmd)
 
-    def start_pulse(self, cmd: int, desired_direction: int) -> None:
+    def start_pulse(self, cmd: float, desired_direction: int) -> None:
         now = self.now_sec()
         self.state = "PULSE"
         self.state_start_time = now
@@ -224,8 +226,8 @@ def main(args=None) -> None:
     except KeyboardInterrupt:
         pass
     finally:
-        stop_msg = Int32()
-        stop_msg.data = 0
+        stop_msg = Float64()
+        stop_msg.data = 0.0
         node.cmd_pub.publish(stop_msg)
         node.destroy_node()
         rclpy.shutdown()

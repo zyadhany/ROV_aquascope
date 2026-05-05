@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
+import json
+import math
+
 import rclpy
 from rclpy.node import Node
 
 from sensor_msgs.msg import Imu
-from std_msgs.msg import String, Float64, Int32, Bool
+from std_msgs.msg import String, Float64, Bool
 
 
 class McuGateway(Node):
@@ -37,6 +40,18 @@ class McuGateway(Node):
             10,
         )
 
+        self.sonar_pub = self.create_publisher(
+            String,
+            "/rov/scanning_sonar/reading",
+            10,
+        )
+
+        self.front_distance_pub = self.create_publisher(
+            Float64,
+            "/rov/front_distance",
+            10,
+        )
+
         # Subscribe to MCU serial output
         self.serial_out_sub = self.create_subscription(
             String,
@@ -61,7 +76,7 @@ class McuGateway(Node):
         )
 
         self.pump_sub = self.create_subscription(
-            Int32,
+            Float64,
             "/rov/mcu/cmd/pump",
             self.pump_callback,
             10,
@@ -74,6 +89,13 @@ class McuGateway(Node):
             10,
         )
 
+        self.gripper_sub = self.create_subscription(
+            Bool,
+            "/rov/mcu/cmd/gripper",
+            self.gripper_callback,
+            10,
+        )
+
         self.get_logger().info("MCU Gateway started")
 
     # =========================
@@ -81,22 +103,39 @@ class McuGateway(Node):
     # =========================
 
     def left_thruster_callback(self, msg: Float64):
-        self.send_serial(f"LEFT_THRUST {msg.data}")
+        value = self.clamp_normalized(msg.data, "left thruster")
+        if value is not None:
+            self.send_serial(f"LEFT_THRUST {value}")
 
     def right_thruster_callback(self, msg: Float64):
-        self.send_serial(f"RIGHT_THRUST {msg.data}")
+        value = self.clamp_normalized(msg.data, "right thruster")
+        if value is not None:
+            self.send_serial(f"RIGHT_THRUST {value}")
 
-    def pump_callback(self, msg: Int32):
-        self.send_serial(f"PUMP {msg.data}")
+    def pump_callback(self, msg: Float64):
+        value = self.clamp_normalized(msg.data, "pump")
+        if value is not None:
+            self.send_serial(f"PUMP {value}")
 
     def light_callback(self, msg: Bool):
         value = 1 if msg.data else 0
         self.send_serial(f"LIGHT {value}")
 
+    def gripper_callback(self, msg: Bool):
+        value = 1 if msg.data else 0
+        self.send_serial(f"GRIPPER {value}")
+
     def send_serial(self, command: str):
         msg = String()
         msg.data = command
         self.serial_in_pub.publish(msg)
+
+    def clamp_normalized(self, value: float, name: str):
+        if not math.isfinite(value):
+            self.get_logger().warn(f"Ignoring non-finite {name} command: {value}")
+            return None
+
+        return max(-1.0, min(1.0, value))
 
     # =========================
     # Serial output -> ROS data
@@ -127,6 +166,9 @@ class McuGateway(Node):
             elif key == "IMU":
                 self.publish_imu(parts[1:])
 
+            elif key == "SONAR":
+                self.publish_sonar(" ".join(parts[1:]))
+
             elif key == "OK":
                 self.get_logger().info(text)
 
@@ -148,6 +190,23 @@ class McuGateway(Node):
         msg = Float64()
         msg.data = value
         self.pressure_pub.publish(msg)
+
+    def publish_sonar(self, reading: str):
+        msg = String()
+        msg.data = reading
+        self.sonar_pub.publish(msg)
+
+        try:
+            data = json.loads(reading)
+            angle = float(data.get("angle_rad", 0.0))
+            distance = float(data["distance_m"])
+        except (TypeError, ValueError, KeyError, json.JSONDecodeError):
+            return
+
+        if abs(angle) <= 0.05:
+            distance_msg = Float64()
+            distance_msg.data = distance
+            self.front_distance_pub.publish(distance_msg)
 
     def publish_imu(self, values):
         if len(values) != 10:

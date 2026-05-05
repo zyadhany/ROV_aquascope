@@ -36,6 +36,13 @@
       "description": "ROV light controlled by the microcontroller."
     },
     {
+      "id": "/hardware/actuators/gripper",
+      "name": "Gripper",
+      "type": "interface",
+      "category": "Actuators",
+      "description": "ROV gripper controlled by the microcontroller. It opens and closes using the same on/off command style as the light."
+    },
+    {
       "id": "/hardware/sensors/camera",
       "name": "Camera",
       "type": "camera",
@@ -55,6 +62,13 @@
       "type": "sensor",
       "category": "Sensors",
       "description": "Pressure sensor connected to the microcontroller. Used to produce pressure data and current depth."
+    },
+    {
+      "id": "/hardware/sensors/sonar",
+      "name": "Scanning Sonar",
+      "type": "sensor",
+      "category": "Sensors",
+      "description": "Scanning sonar sensor connected through the microcontroller path. Produces JSON sonar readings and forward distance data."
     },
     {
       "id": "/nodes/mcu_gateway",
@@ -219,11 +233,41 @@
       }
     },
     {
+      "id": "/topics/sonar/reading",
+      "name": "Sonar Reading",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Scanning sonar JSON reading published by the MCU Gateway. Includes angle, distance, validity, and timestamp fields.",
+      "ros_topic": "/rov/scanning_sonar/reading",
+      "message_type": "std_msgs/String",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/front_distance",
+      "name": "Front Distance",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Forward-facing distance extracted from sonar readings near zero radians.",
+      "ros_topic": "/rov/front_distance",
+      "message_type": "std_msgs/Float64",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
       "id": "/topics/cmd/left_thruster",
       "name": "Left Thruster Command",
       "type": "topic",
       "category": "Command Topics",
-      "description": "Left thruster command sent to the MCU Gateway.",
+      "description": "Normalized left thruster command sent to the MCU Gateway. Range is [-1, 1]. The microcontroller scales it to the simulator thruster limit.",
       "ros_topic": "/rov/mcu/cmd/left_thruster",
       "message_type": "std_msgs/Float64",
       "show": {
@@ -238,7 +282,7 @@
       "name": "Right Thruster Command",
       "type": "topic",
       "category": "Command Topics",
-      "description": "Right thruster command sent to the MCU Gateway.",
+      "description": "Normalized right thruster command sent to the MCU Gateway. Range is [-1, 1]. The microcontroller scales it to the simulator thruster limit.",
       "ros_topic": "/rov/mcu/cmd/right_thruster",
       "message_type": "std_msgs/Float64",
       "show": {
@@ -253,9 +297,9 @@
       "name": "Pump Command",
       "type": "topic",
       "category": "Command Topics",
-      "description": "Pump command sent to the MCU Gateway.",
+      "description": "Ballast pump command sent to the MCU Gateway as a float in [-1, 1]. Positive fills ballast, negative empties ballast, and zero stops.",
       "ros_topic": "/rov/mcu/cmd/pump",
-      "message_type": "std_msgs/Int32",
+      "message_type": "std_msgs/Float64",
       "show": {
         "publishers": true,
         "subscribers": true,
@@ -270,6 +314,21 @@
       "category": "Command Topics",
       "description": "Light command sent to the MCU Gateway.",
       "ros_topic": "/rov/mcu/cmd/light",
+      "message_type": "std_msgs/Bool",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/cmd/gripper",
+      "name": "Gripper Command",
+      "type": "topic",
+      "category": "Command Topics",
+      "description": "Gripper open/close command sent to the MCU Gateway.",
+      "ros_topic": "/rov/mcu/cmd/gripper",
       "message_type": "std_msgs/Bool",
       "show": {
         "publishers": true,
@@ -379,6 +438,11 @@
     },
     {
       "from": "/hardware/microcontroller",
+      "to": "/hardware/actuators/gripper",
+      "label": "control signal"
+    },
+    {
+      "from": "/hardware/microcontroller",
       "to": "/hardware/actuators/pump",
       "label": "control signal"
     },
@@ -391,6 +455,11 @@
       "from": "/hardware/sensors/imu",
       "to": "/hardware/microcontroller",
       "label": "imu data"
+    },
+    {
+      "from": "/hardware/sensors/sonar",
+      "to": "/hardware/microcontroller",
+      "label": "sonar data"
     },
     {
       "from": "/nodes/mcu_gateway",
@@ -443,6 +512,16 @@
       "label": "current depth"
     },
     {
+      "from": "/nodes/mcu_gateway",
+      "to": "/topics/sonar/reading",
+      "label": "sonar reading"
+    },
+    {
+      "from": "/nodes/mcu_gateway",
+      "to": "/topics/front_distance",
+      "label": "front distance"
+    },
+    {
       "from": "/topics/cmd/left_thruster",
       "to": "/nodes/mcu_gateway",
       "label": "command value"
@@ -459,6 +538,11 @@
     },
     {
       "from": "/topics/cmd/light",
+      "to": "/nodes/mcu_gateway",
+      "label": "control signal"
+    },
+    {
+      "from": "/topics/cmd/gripper",
       "to": "/nodes/mcu_gateway",
       "label": "control signal"
     },
@@ -505,6 +589,11 @@
     {
       "from": "/nodes/rov_controller",
       "to": "/topics/cmd/light",
+      "label": "publishes"
+    },
+    {
+      "from": "/nodes/rov_controller",
+      "to": "/topics/cmd/gripper",
       "label": "publishes"
     },
     {

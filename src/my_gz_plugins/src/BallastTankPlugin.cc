@@ -1,11 +1,12 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <memory>
 #include <string>
 
 #include <gz/math/Vector3.hh>
-#include <gz/msgs/int32.pb.h>
+#include <gz/msgs/double.pb.h>
 #include <gz/plugin/Register.hh>
 #include <gz/sim/Link.hh>
 #include <gz/sim/Model.hh>
@@ -57,6 +58,7 @@ class BallastTankPlugin:
     std::cout << "  max_weight     = " << this->maxWeight << "\n";
     std::cout << "  initial_weight = " << this->currentWeight << "\n";
     std::cout << "  fill_rate      = " << this->fillRate << "\n";
+    std::cout << "  command range  = [-1.0, 1.0]\n";
   }
 
   public: void PreUpdate(
@@ -73,14 +75,20 @@ class BallastTankPlugin:
     if (dt <= 0.0)
       return;
 
-    int cmd = this->command.load();
+    // cmd:
+    //   1.0  = fill at full fillRate
+    //   0.5  = fill at half fillRate
+    //   0.0  = stop
+    //  -0.5  = empty at half fillRate
+    //  -1.0  = empty at full fillRate
+    double cmd = this->command.load();
 
-    if (cmd == 1)
-      this->currentWeight += this->fillRate * dt;
-    else if (cmd == 2)
-      this->currentWeight -= this->fillRate * dt;
+    this->currentWeight += cmd * this->fillRate * dt;
 
-    this->currentWeight = std::clamp(this->currentWeight, 0.0, this->maxWeight);
+    this->currentWeight = std::clamp(
+      this->currentWeight,
+      0.0,
+      this->maxWeight);
 
     gz::sim::Link link(this->linkEntity);
 
@@ -92,11 +100,17 @@ class BallastTankPlugin:
       gz::math::Vector3d(0, 0, 0));
   }
 
-  private: void OnCmd(const gz::msgs::Int32 &_msg)
+  private: void OnCmd(const gz::msgs::Double &_msg)
   {
-    int value = _msg.data();
-    if (value == 0 || value == 1 || value == 2)
-      this->command.store(value);
+    double value = _msg.data();
+
+    // Ignore NaN / inf commands.
+    if (!std::isfinite(value))
+      return;
+
+    value = std::clamp(value, -1.0, 1.0);
+
+    this->command.store(value);
   }
 
   private: gz::sim::Model model{gz::sim::kNullEntity};
@@ -109,7 +123,7 @@ class BallastTankPlugin:
   private: double currentWeight{0.0};
   private: double fillRate{0.1};
 
-  private: std::atomic<int> command{0};
+  private: std::atomic<double> command{0.0};
 
   private: gz::transport::Node node;
 };

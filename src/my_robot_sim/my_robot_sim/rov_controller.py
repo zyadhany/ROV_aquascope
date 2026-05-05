@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
+import math
+
 import rclpy
 from rclpy.node import Node
 
-from std_msgs.msg import String, Float64, Int32, Bool
+from std_msgs.msg import String, Float64, Bool
 
 
 class RovController(Node):
@@ -30,7 +32,7 @@ class RovController(Node):
         )
 
         self.pump_pub = self.create_publisher(
-            Int32,
+            Float64,
             "/rov/mcu/cmd/pump",
             10,
         )
@@ -41,6 +43,12 @@ class RovController(Node):
             10,
         )
 
+        self.gripper_pub = self.create_publisher(
+            Bool,
+            "/rov/mcu/cmd/gripper",
+            10,
+        )
+
         self.target_depth_pub = self.create_publisher(
             Float64,
             "/rov/depth/target",
@@ -48,6 +56,7 @@ class RovController(Node):
         )
 
         self.light_on = False
+        self.gripper_open = True
 
         self.get_logger().info("ROV Controller started")
 
@@ -60,7 +69,7 @@ class RovController(Node):
         cmd = parts[0].upper()
 
         try:
-            speed = float(parts[1]) if len(parts) > 1 else 1.0
+            speed = self.clamp(float(parts[1]) if len(parts) > 1 else 1.0)
 
             if cmd == "FORWARD":
                 self.publish_thrusters(speed, speed)
@@ -81,22 +90,22 @@ class RovController(Node):
                 self.publish_right(speed)
 
             elif cmd == "THRUST":
-                left = float(parts[1])
-                right = float(parts[2])
+                left = self.clamp(float(parts[1]))
+                right = self.clamp(float(parts[2]))
                 self.publish_thrusters(left, right)
 
             elif cmd == "PUMP":
-                value = int(parts[1])
+                value = float(parts[1])
                 self.publish_pump(value)
 
             elif cmd == "UP":
-                self.publish_pump(2)
+                self.publish_pump(-1.0)
 
             elif cmd == "DOWN":
-                self.publish_pump(1)
+                self.publish_pump(1.0)
 
             elif cmd == "PUMP_STOP":
-                self.publish_pump(0)
+                self.publish_pump(0.0)
 
             elif cmd == "DEPTH":
                 target = float(parts[1])
@@ -110,7 +119,21 @@ class RovController(Node):
             elif cmd == "LIGHT_TOGGLE":
                 self.light_on = not self.light_on
                 self.publish_light(self.light_on)
-
+            elif cmd == "LIGHT_ON":
+                self.publish_light(True)
+            elif cmd == "LIGHT_OFF":
+                self.publish_light(False)
+            elif cmd == "GRIPPER":
+                value = parts[1].upper()
+                self.gripper_open = value in ["1", "ON", "OPEN", "TRUE"]
+                self.publish_gripper(self.gripper_open)
+            elif cmd == "GRIPPER_TOGGLE":
+                self.gripper_open = not self.gripper_open
+                self.publish_gripper(self.gripper_open)
+            elif cmd in ("GRIPPER_ON", "GRIPPER_OPEN"):
+                self.publish_gripper(True)
+            elif cmd in ("GRIPPER_OFF", "GRIPPER_CLOSE"):
+                self.publish_gripper(False)
             elif cmd == "STOP":
                 self.publish_thrusters(0.0, 0.0)
 
@@ -134,15 +157,22 @@ class RovController(Node):
         self.publish_left(left)
         self.publish_right(right)
 
-    def publish_pump(self, value: int):
-        msg = Int32()
-        msg.data = value
+    def publish_pump(self, value: float):
+        msg = Float64()
+        msg.data = self.clamp(value)
         self.pump_pub.publish(msg)
 
     def publish_light(self, value: bool):
+        self.light_on = value
         msg = Bool()
         msg.data = value
         self.light_pub.publish(msg)
+
+    def publish_gripper(self, value: bool):
+        self.gripper_open = value
+        msg = Bool()
+        msg.data = value
+        self.gripper_pub.publish(msg)
 
     def publish_target_depth(self, value: float):
         msg = Float64()
@@ -150,8 +180,9 @@ class RovController(Node):
         self.target_depth_pub.publish(msg)
 
     def clamp(self, value: float) -> float:
-        return value
-        # no clamping now
+        if not math.isfinite(value):
+            raise ValueError
+
         return max(-1.0, min(1.0, value))
 
 

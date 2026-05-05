@@ -7,8 +7,8 @@
     <link name="base_link">
       <inertial>
         <pose>0 0 -0.07 0 0 0</pose>
-        <mass>7.475</mass> <!-- neutral for volume 0.007875 m^3 in water -->
-          <inertia>
+        <mass>7.475</mass>
+        <inertia>
           <ixx>0.02953125</ixx>
           <iyy>0.09515625</iyy>
           <izz>0.09515625</izz>
@@ -46,8 +46,10 @@
         <topic>/rov/imu</topic>
       </sensor>
 
+      <!-- Scanning sonar ray source.
+           Moved forward so it does not hit the ROV hull at ~0.17 m. -->
       <sensor name="scanning_sonar_internal_sensor" type="gpu_lidar">
-        <pose>0 0 0 0 0 0</pose>
+        <pose>0.38 0 0.03 0 0 0</pose>
 
         <!-- Internal topic. Dashboard should NOT use this directly. -->
         <topic>/rov/scanning_sonar/internal_scan</topic>
@@ -529,16 +531,16 @@
     </plugin>
 
     <plugin filename="BallastTankPlugin"
-          name="my_plugins::BallastTankPlugin">
+            name="my_plugins::BallastTankPlugin">
       <link_name>base_link</link_name>
       <topic>/rov/ballast_cmd</topic>
       <max_weight>0.8</max_weight>
       <initial_weight>0.0</initial_weight>
-      <fill_rate>0.06</fill_rate>
+      <fill_rate>0.4</fill_rate>
     </plugin>
 
     <plugin filename="libPressureSensorPlugin.so"
-      name="my_plugins::PressureSensorPlugin">
+            name="my_plugins::PressureSensorPlugin">
       <parent_link_name>base_link</parent_link_name>
 
       <!-- Sensor port location on hull, relative to base_link -->
@@ -568,7 +570,7 @@
 
       <pressure_topic>/rov/pressure</pressure_topic>
       <depth_topic>/rov/depth/current</depth_topic>
-    </plugin>    
+    </plugin>
 
     <link name="camera_link">
       <pose relative_to="base_link">0.18 0 0.05 0 0 0</pose>
@@ -676,15 +678,15 @@
       <input_scan_topic>/rov/scanning_sonar/internal_scan</input_scan_topic>
       <topic>/rov/scanning_sonar/reading</topic>
 
-      <!-- Radians: -180 deg to +180 deg -->
-      <min_angle>-3.1416</min_angle>
-      <max_angle>3.1416</max_angle>
+      <!-- Radians: -57 deg to +57 deg -->
+      <min_angle>-1</min_angle>
+      <max_angle>1</max_angle>
 
       <!-- Messages per second -->
-      <frequency>10</frequency>
+      <frequency>5</frequency>
 
-      <!-- 5 degrees per message = full scan in about 7.2 seconds at 10 Hz -->
-      <angle_step>0.0873</angle_step>
+      <!-- 0.2 rad per message -->
+      <angle_step>0.2</angle_step>
 
       <min_distance>0.10</min_distance>
       <max_distance>8.0</max_distance>

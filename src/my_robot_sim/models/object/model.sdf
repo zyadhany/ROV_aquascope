@@ -10,7 +10,7 @@
       <inertial>
         <!-- 0.06 * 0.06 * 0.06 = 0.000216 m^3 -->
         <!-- Neutral mass in water ≈ 0.216 kg -->
-        <mass>0.6</mass>
+        <mass>1.1</mass>
         <inertia>
           <ixx>0.000132</ixx>
           <iyy>0.000132</iyy>
@@ -24,7 +24,7 @@
       <collision name="box_collision">
         <geometry>
           <box>
-            <size>0.06 0.06 0.3</size>
+            <size>0.1 0.1 0.1</size>
           </box>
         </geometry>
 
@@ -48,7 +48,7 @@
       <visual name="box_visual">
         <geometry>
           <box>
-            <size>0.06 0.06 0.3</size>
+            <size>0.1 0.1 0.1</size>
           </box>
         </geometry>
         <material>

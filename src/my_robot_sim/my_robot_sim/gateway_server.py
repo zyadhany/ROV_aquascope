@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import json
+import math
 import threading
 import time
 
@@ -20,6 +22,7 @@ CAMERA_TOPIC = "/rov/camera/image"
 
 DEPTH_TOPIC = "/rov/depth/current"
 FRONT_DISTANCE_TOPIC = "/rov/front_distance"
+SONAR_TOPIC = "/rov/scanning_sonar/reading"
 BATTERY_TOPIC = "/rov/battery"
 
 
@@ -42,6 +45,7 @@ class ApiRosNode(Node):
 
         self.depth = 0.0
         self.front_distance = 0.0
+        self.sonar = None
         self.battery = 0
         self.sensor_lock = threading.Lock()
 
@@ -63,6 +67,13 @@ class ApiRosNode(Node):
             Float64,
             FRONT_DISTANCE_TOPIC,
             self.front_distance_callback,
+            10,
+        )
+
+        self.create_subscription(
+            String,
+            SONAR_TOPIC,
+            self.sonar_callback,
             10,
         )
 
@@ -120,6 +131,15 @@ class ApiRosNode(Node):
         with self.sensor_lock:
             self.front_distance = float(msg.data)
 
+    def sonar_callback(self, msg: String) -> None:
+        try:
+            sonar = json.loads(msg.data)
+        except json.JSONDecodeError:
+            sonar = msg.data
+
+        with self.sensor_lock:
+            self.sonar = sonar
+
     def battery_callback(self, msg: Int32) -> None:
         with self.sensor_lock:
             self.battery = int(msg.data)
@@ -142,12 +162,14 @@ def sensors_data():
     with ros_node.sensor_lock:
         depth = ros_node.depth
         front_distance = ros_node.front_distance
+        sonar = ros_node.sonar
 
     return jsonify(
         {
             "ok": True,
             "depth": depth,
             "front_distance": front_distance,
+            "sonar": sonar,
         }
     )
 
@@ -288,6 +310,29 @@ def light_toggle():
     return command_response("light_toggle", "LIGHT_TOGGLE")
 
 
+@app.route("/gripper_on", methods=["POST"])
+@app.route("/gripper-on", methods=["POST"])
+@app.route("/gripper/open", methods=["POST"])
+def gripper_on():
+    ros_node.send_command("GRIPPER_ON")
+    return command_response("gripper_on", "GRIPPER_ON")
+
+
+@app.route("/gripper_off", methods=["POST"])
+@app.route("/gripper-off", methods=["POST"])
+@app.route("/gripper/close", methods=["POST"])
+def gripper_off():
+    ros_node.send_command("GRIPPER_OFF")
+    return command_response("gripper_off", "GRIPPER_OFF")
+
+
+@app.route("/gripper_toggle", methods=["POST"])
+@app.route("/gripper-toggle", methods=["POST"])
+def gripper_toggle():
+    ros_node.send_command("GRIPPER_TOGGLE")
+    return command_response("gripper_toggle", "GRIPPER_TOGGLE")
+
+
 @app.route("/message", methods=["POST"])
 def message_compatibility():
     """
@@ -318,6 +363,9 @@ def message_compatibility():
         "light_on": "LIGHT_ON",
         "light_off": "LIGHT_OFF",
         "light_toggle": "LIGHT_TOGGLE",
+        "gripper_on": "GRIPPER_ON",
+        "gripper_off": "GRIPPER_OFF",
+        "gripper_toggle": "GRIPPER_TOGGLE",
     }
 
     if message in movement_commands:
@@ -330,6 +378,16 @@ def message_compatibility():
                     "error": "velocity must be a number",
                 }
             ), 400
+
+        if not math.isfinite(velocity):
+            return jsonify(
+                {
+                    "ok": False,
+                    "error": "velocity must be finite",
+                }
+            ), 400
+
+        velocity = max(0.0, min(1.0, velocity))
 
         sent = f"{movement_commands[message]} {velocity}"
         ros_node.send_command(sent)
@@ -345,7 +403,8 @@ def message_compatibility():
             "ok": False,
             "error": (
                 "message must be one of: forward, backward, left, right, "
-                "stop, up, down, pump_stop, light_on, light_off, light_toggle"
+                "stop, up, down, pump_stop, light_on, light_off, "
+                "light_toggle, gripper_on, gripper_off, gripper_toggle"
             ),
         }
     ), 400
@@ -407,6 +466,7 @@ def health():
             "camera_topic": CAMERA_TOPIC,
             "depth_topic": DEPTH_TOPIC,
             "front_distance_topic": FRONT_DISTANCE_TOPIC,
+            "sonar_topic": SONAR_TOPIC,
             "battery_topic": BATTERY_TOPIC,
             "message_type": "std_msgs/String",
         }

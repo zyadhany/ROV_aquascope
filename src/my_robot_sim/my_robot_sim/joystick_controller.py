@@ -19,6 +19,7 @@ LEFT_STICK_Y_AXIS = 1
 BTN_UP = 0
 BTN_DOWN = 2
 BTN_LIGHT_TOGGLE = 1
+BTN_GRIPPER_TOGGLE = 3
 
 # R2 can be button or axis depending on controller
 BTN_R2 = 7
@@ -26,8 +27,8 @@ R2_AXIS = 5
 R2_AXIS_THRESHOLD = 0.5
 
 # Speeds
-NORMAL_SPEED = 3.0
-FAST_SPEED = 5.0
+NORMAL_SPEED = 0.6
+FAST_SPEED = 1.0
 
 # Ignore small analog noise
 DEADZONE = 0.25
@@ -75,6 +76,7 @@ class JoystickController(Node):
         self.get_logger().info("Button 1 = UP")
         self.get_logger().info("Button 3 = DOWN")
         self.get_logger().info("Button 2 = LIGHT_TOGGLE")
+        self.get_logger().info("Button 4 = GRIPPER_TOGGLE")
         self.get_logger().info("R2 = fast speed")
 
     def send_command(self, command: str):
@@ -116,6 +118,9 @@ class JoystickController(Node):
 
                 elif button == BTN_LIGHT_TOGGLE:
                     self.send_command("LIGHT_TOGGLE")
+
+                elif button == BTN_GRIPPER_TOGGLE:
+                    self.send_command("GRIPPER_TOGGLE")
 
                 elif button == BTN_R2:
                     self.r2_fast = True

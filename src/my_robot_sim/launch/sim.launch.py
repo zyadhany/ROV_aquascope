@@ -43,10 +43,12 @@ def start_bridge():
             arguments=[
                 '/model/rov/joint/left_thruster_joint/cmd_thrust@std_msgs/msg/Float64]gz.msgs.Double',
                 '/model/rov/joint/right_thruster_joint/cmd_thrust@std_msgs/msg/Float64]gz.msgs.Double',
-                '/rov/ballast_cmd@std_msgs/msg/Int32]gz.msgs.Int32',
+                '/rov/ballast_cmd@std_msgs/msg/Float64]gz.msgs.Double',
                 '/rov/depth/current@std_msgs/msg/Float64[gz.msgs.Double',
                 '/rov/light/cmd@std_msgs/msg/Bool]gz.msgs.Boolean',
+                '/rov/gripper/open_cmd@std_msgs/msg/Bool]gz.msgs.Boolean',
                 '/rov/imu@sensor_msgs/msg/Imu@gz.msgs.IMU',
+                '/rov/scanning_sonar/reading@std_msgs/msg/String[gz.msgs.StringMsg',
 
                 '--ros-args',
                 '-r', '/model/rov/joint/left_thruster_joint/cmd_thrust:=/sim/left_thruster/cmd',
@@ -55,7 +57,9 @@ def start_bridge():
                 '-r', '/rov/depth/current:=/sim/depth/current',
                 '-r', '/rov/camera/image:=/sim/camera/image',
                 '-r', '/rov/light/cmd:=/sim/light/cmd',
+                '-r', '/rov/gripper/open_cmd:=/sim/gripper/open_cmd',
                 '-r', '/rov/imu:=/sim/imu',
+                '-r', '/rov/scanning_sonar/reading:=/sim/scanning_sonar/reading',
             ],
             output='screen'
         ),
