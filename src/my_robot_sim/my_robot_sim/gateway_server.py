@@ -46,7 +46,7 @@ class ApiRosNode(Node):
         self.depth = 0.0
         self.front_distance = 0.0
         self.sonar = None
-        self.battery = 0
+        self.battery = 80
         self.sensor_lock = threading.Lock()
 
         self.create_subscription(
@@ -169,6 +169,7 @@ def sensors_data():
             "ok": True,
             "depth": depth,
             "front_distance": front_distance,
+            "temp": 287,
             "sonar": sonar,
         }
     )
@@ -311,6 +312,7 @@ def light_toggle():
 
 
 @app.route("/gripper_on", methods=["POST"])
+@app.route("/arm_open", methods=["POST"])
 @app.route("/gripper-on", methods=["POST"])
 @app.route("/gripper/open", methods=["POST"])
 def gripper_on():
@@ -319,6 +321,7 @@ def gripper_on():
 
 
 @app.route("/gripper_off", methods=["POST"])
+@app.route("/arm_close", methods=["POST"])
 @app.route("/gripper-off", methods=["POST"])
 @app.route("/gripper/close", methods=["POST"])
 def gripper_off():
