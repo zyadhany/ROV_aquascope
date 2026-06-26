@@ -7,7 +7,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     return LaunchDescription([
         Node(
-            package="my_robot_sim",
+            package="rov_system",
             executable="rov_controller",
             name="rov_controller",
             output="screen",
@@ -17,7 +17,7 @@ def generate_launch_description():
         ),
 
         Node(
-            package="my_robot_sim",
+            package="rov_system",
             executable="mcu_gateway",
             name="mcu_gateway",
             output="screen",
@@ -27,7 +27,7 @@ def generate_launch_description():
         ),
 
         Node(
-            package="my_robot_sim",
+            package="rov_system",
             executable="depth_controller",
             name="depth_controller",
             output="screen",
@@ -37,7 +37,7 @@ def generate_launch_description():
         ),
 
         Node(
-            package="my_robot_sim",
+            package="rov_system",
             executable="camera_streamer",
             name="camera_streamer",
             output="screen",

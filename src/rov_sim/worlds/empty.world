@@ -42,7 +42,7 @@
     </plugin>
 
     <include>
-      <uri>model://bool</uri>
+      <uri>model://pool</uri>
     </include>
 
     <include>

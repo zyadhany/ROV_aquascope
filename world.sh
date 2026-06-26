@@ -1,1 +1,1 @@
-gz sim src/my_robot_sim/worlds/empty.world
+gz sim src/rov_sim/worlds/empty.world

@@ -5,8 +5,12 @@ from ament_index_python.packages import get_package_prefix
 from ament_index_python.packages import get_package_share_directory
 import os
 
-pkg_share = get_package_share_directory('my_robot_sim')
-plugin_prefix = get_package_prefix('my_gz_plugins')
+# UPDATED: Point to the new simulation package for models/worlds
+pkg_share = get_package_share_directory('rov_sim')
+
+# UPDATED: Point to the new simulation package for C++ plugins
+plugin_prefix = get_package_prefix('rov_sim')
+
 models_path = os.path.join(pkg_share, 'models')
 plugins_path = os.path.join(plugin_prefix, 'lib')
 
@@ -16,7 +20,6 @@ def start_gazebo():
         cmd=['gz', 'sim', world_path],
         output='screen'
     )
-
 
     start_simulation = TimerAction(
         period=1.0,
@@ -82,17 +85,17 @@ def start_bridge():
     return [bridge]
 
 def ros_node():
-    thrusters_node = TimerAction(
+    mcu_node = TimerAction(
         period=1.0,
         actions=[
             Node(
-                package='my_robot_sim',
+                package='rov_sim',
                 executable='microcontroller_sim',
                 output='screen'
             )
         ]
     )
-    return [thrusters_node]
+    return [mcu_node]
 
 def generate_launch_description():
 
