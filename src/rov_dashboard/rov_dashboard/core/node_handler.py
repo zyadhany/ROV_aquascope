@@ -39,11 +39,10 @@ class NodeHandler:
 
     def start_node_from_config(self, node_config: dict[str, Any]) -> NodeStartResult:
         ros_node_name = self._resolve_ros_node_name(node_config)
-
         package = (
             node_config.get("package")
             or node_config.get("ros_package") 
-            or "my_robot_sim"
+            or "rov_system"
         )
 
         executable = (
