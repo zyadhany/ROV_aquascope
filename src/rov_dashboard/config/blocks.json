@@ -64,6 +64,13 @@
       "description": "Pressure sensor connected to the microcontroller. Used to produce pressure data and current depth."
     },
     {
+      "id": "/hardware/sensors/temperature_sensor",
+      "name": "Temperature Sensor",
+      "type": "sensor",
+      "category": "Sensors",
+      "description": "Temperature sensor connected to the microcontroller."
+    },
+    {
       "id": "/hardware/sensors/sonar",
       "name": "Scanning Sonar",
       "type": "sensor",
@@ -164,6 +171,21 @@
       "category": "Topics",
       "description": "Raw or processed pressure data published by the MCU Gateway.",
       "ros_topic": "/rov/pressure/data",
+      "message_type": "std_msgs/Float64",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/temperature",
+      "name": "Temperature Data",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Raw or processed temperature data published by the MCU Gateway.",
+      "ros_topic": "/rov/temperature",
       "message_type": "std_msgs/Float64",
       "show": {
         "publishers": true,
@@ -452,6 +474,11 @@
       "label": "pressure data"
     },
     {
+      "from": "/hardware/sensors/temperature_sensor",
+      "to": "/hardware/microcontroller",
+      "label": "temperature data"
+    },
+    {
       "from": "/hardware/sensors/imu",
       "to": "/hardware/microcontroller",
       "label": "imu data"
@@ -500,6 +527,11 @@
       "from": "/nodes/mcu_gateway",
       "to": "/topics/pressure/data",
       "label": "pressure data"
+    },
+    {
+      "from": "/nodes/mcu_gateway",
+      "to": "/topics/temperature",
+      "label": "temperature data"
     },
     {
       "from": "/nodes/mcu_gateway",

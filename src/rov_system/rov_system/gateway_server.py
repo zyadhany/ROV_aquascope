@@ -6,6 +6,7 @@ import threading
 import time
 
 import cv2
+from sympy import true
 from cv_bridge import CvBridge
 from flask import Flask, Response, jsonify, request
 
@@ -46,7 +47,7 @@ class ApiRosNode(Node):
         self.depth = 0.0
         self.front_distance = 0.0
         self.sonar = None
-        self.battery = 80
+        self.battery = 0
         self.sensor_lock = threading.Lock()
 
         self.create_subscription(
@@ -187,6 +188,17 @@ def battery_data():
         }
     )
 
+@app.route("/leak", methods=["GET"])
+def leak_data():
+    with ros_node.sensor_lock:
+        leak = False  # Placeholder for actual leak detection logic
+
+    return jsonify(
+        {
+            "ok": True,
+            "leak": leak,
+        }
+    )
 
 @app.route("/speed", methods=["POST"])
 def set_speed():

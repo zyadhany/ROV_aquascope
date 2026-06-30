@@ -62,11 +62,14 @@ class RovController(Node):
 
     def cmd_callback(self, msg: String):
         command = msg.data.strip()
+        self.get_logger().info(f"Received command: {command}")
+        
         if not command:
             return
 
         parts = command.split()
         cmd = parts[0].upper()
+        self.get_logger().info(f"Executing command action: {cmd}")
 
         try:
             speed = self.clamp(float(parts[1]) if len(parts) > 1 else 1.0)
@@ -146,37 +149,44 @@ class RovController(Node):
     def publish_left(self, value: float):
         msg = Float64()
         msg.data = self.clamp(value)
+        self.get_logger().info(f"Publishing left thruster: {msg.data}")
         self.left_pub.publish(msg)
 
     def publish_right(self, value: float):
         msg = Float64()
         msg.data = self.clamp(value)
+        self.get_logger().info(f"Publishing right thruster: {msg.data}")
         self.right_pub.publish(msg)
 
     def publish_thrusters(self, left: float, right: float):
+        self.get_logger().info(f"Publishing thrusters - Left: {left}, Right: {right}")
         self.publish_left(left)
         self.publish_right(right)
 
     def publish_pump(self, value: float):
         msg = Float64()
         msg.data = self.clamp(value)
+        self.get_logger().info(f"Publishing pump: {msg.data}")
         self.pump_pub.publish(msg)
 
     def publish_light(self, value: bool):
         self.light_on = value
         msg = Bool()
         msg.data = value
+        self.get_logger().info(f"Publishing light state: {msg.data}")
         self.light_pub.publish(msg)
 
     def publish_gripper(self, value: bool):
         self.gripper_open = value
         msg = Bool()
         msg.data = value
+        self.get_logger().info(f"Publishing gripper state: {msg.data}")
         self.gripper_pub.publish(msg)
 
     def publish_target_depth(self, value: float):
         msg = Float64()
         msg.data = value
+        self.get_logger().info(f"Publishing target depth: {msg.data}")
         self.target_depth_pub.publish(msg)
 
     def clamp(self, value: float) -> float:

@@ -34,6 +34,12 @@ class McuGateway(Node):
             10,
         )
 
+        self.temp_pub = self.create_publisher(
+            Float64,
+            "/rov/temperature",
+            10,
+        )
+
         self.imu_pub = self.create_publisher(
             Imu,
             "/rov/imu",
@@ -163,6 +169,9 @@ class McuGateway(Node):
             elif key == "PRESSURE":
                 self.publish_pressure(float(value_text))
 
+            elif key == "TEMP" or key == "TEMPERATURE":
+                self.publish_temp(float(value_text))
+
             elif key == "IMU":
                 self.publish_imu(parts[1:])
 
@@ -190,6 +199,11 @@ class McuGateway(Node):
         msg = Float64()
         msg.data = value
         self.pressure_pub.publish(msg)
+
+    def publish_temp(self, value: float):
+        msg = Float64()
+        msg.data = value
+        self.temp_pub.publish(msg)
 
     def publish_sonar(self, reading: str):
         msg = String()

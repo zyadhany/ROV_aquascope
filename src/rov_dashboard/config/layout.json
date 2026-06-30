@@ -42,6 +42,10 @@
       "x": 2242.7007065480607,
       "y": 1488.212762338193
     },
+    "/hardware/sensors/temperature_sensor": {
+      "x": 2243.0,
+      "y": 1662.0
+    },
     "/hardware/sensors/sonar": {
       "x": 2243.0,
       "y": 1575.0
@@ -97,6 +101,10 @@
     "/topics/front_distance": {
       "x": 2444.0,
       "y": 1202.0
+    },
+    "/topics/temperature": {
+      "x": 2444.0,
+      "y": 1288.0
     },
     "/topics/cmd/left_thruster": {
       "x": 1727.4837743769576,
@@ -215,6 +223,7 @@
         "/hardware/sensors/camera",
         "/hardware/sensors/imu",
         "/hardware/sensors/pressure_sensor",
+        "/hardware/sensors/temperature_sensor",
         "/hardware/sensors/sonar"
       ]
     },
@@ -230,7 +239,8 @@
         "/topics/depth/target",
         "/topics/depth/error",
         "/topics/sonar/reading",
-        "/topics/front_distance"
+        "/topics/front_distance",
+        "/topics/temperature"
       ]
     },
     {

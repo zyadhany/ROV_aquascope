@@ -392,6 +392,10 @@ class MicrocontrollerSim(Node):
     def send_sensor_data(self):
         self.send_serial(f"DEPTH {self.latest_depth:.3f}")
 
+        # Send simulated temperature
+        temp_val = 24.5 + 0.2 * math.sin(self.get_clock().now().nanoseconds / 1e9)
+        self.send_serial(f"TEMP {temp_val:.1f}")
+
         if self.latest_sonar is not None:
             self.send_serial(f"SONAR {self.latest_sonar}")
 

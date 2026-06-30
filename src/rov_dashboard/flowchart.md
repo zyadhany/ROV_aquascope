@@ -30,6 +30,10 @@ name: Pressure Sensor
 id: hardware/sensors/pressure_sensor
 type: hardware
 
+name: Temperature Sensor
+id: hardware/sensors/temperature_sensor
+type: hardware
+
 name: MCU Gateway
 id: nodes/mcu_gateway
 type: nodes
@@ -49,6 +53,11 @@ name: Pressure Data
 id: topics/pressure/data
 type: topic
 ros2_topic: /rov/pressure/data
+
+name: Temperature Data
+id: topics/temperature
+type: topic
+ros2_topic: /rov/temperature
 
 name: Current Depth
 id: topics/depth/current
@@ -125,6 +134,7 @@ microcontroller -- control signal --> light
 microcontroller -- control signal --> pump
 
 pressure_sensor -- pressure data --> microcontroller
+temperature_sensor -- temperature data --> microcontroller
 imu -- imu data --> microcontroller
 
 microcontroller <-- serial connection --> mcu_gateway
@@ -133,6 +143,7 @@ camera -- raw video/image data --> camera_streamer
 camera_streamer -- published video/image data --> camera_image
 
 mcu_gateway -- pressure data --> pressure_data
+mcu_gateway -- temperature data --> temperature
 mcu_gateway -- current depth --> current_depth
 cmd_left_thruster -- command value --> mcu_gateway
 cmd_right_thruster -- command value --> mcu_gateway

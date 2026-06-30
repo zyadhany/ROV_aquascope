@@ -33,6 +33,7 @@ setup(
             "keyboard_controller = rov_system.keyboard:main",
             "depth_controller = rov_system.depth_controller:main",
             "gateway_server = rov_system.gateway_server:main",
+            "gateway_api_server = rov_system.mcu_api_gateway:main",
             "mcu_gateway = rov_system.mcu_gateway:main",
             "camera_streamer = rov_system.camera_streamer:main",
             "joystick_controller = rov_system.joystick_controller:main",

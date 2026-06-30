@@ -45,4 +45,13 @@ def generate_launch_description():
             respawn=True,
             respawn_delay=2.0,
         ),
+        Node(
+            package="rov_system",
+            executable="gateway_api_server",
+            name="gateway_api_server",
+            output="screen",
+            emulate_tty=True,
+            respawn=True,
+            respawn_delay=2.0,
+        ),
     ])
