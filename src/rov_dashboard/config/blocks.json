@@ -165,7 +165,7 @@
       }
     },
     {
-      "id": "/topics/pressure/data",
+      "id": "/topics/pressure",
       "name": "Pressure Data",
       "type": "topic",
       "category": "Topics",
@@ -525,7 +525,7 @@
     },
     {
       "from": "/nodes/mcu_gateway",
-      "to": "/topics/pressure/data",
+      "to": "/topics/pressure",
       "label": "pressure data"
     },
     {

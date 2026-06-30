@@ -25,6 +25,8 @@ DEPTH_TOPIC = "/rov/depth/current"
 FRONT_DISTANCE_TOPIC = "/rov/front_distance"
 SONAR_TOPIC = "/rov/scanning_sonar/reading"
 BATTERY_TOPIC = "/rov/battery"
+TEMP_TOPIC = "/rov/temperature"
+PRESSURE_TOPIC = "/rov/pressure/data"
 
 
 class ApiRosNode(Node):
@@ -48,6 +50,8 @@ class ApiRosNode(Node):
         self.front_distance = 0.0
         self.sonar = None
         self.battery = 0
+        self.temp = 0.0
+        self.pressure = 0.0
         self.sensor_lock = threading.Lock()
 
         self.create_subscription(
@@ -85,6 +89,20 @@ class ApiRosNode(Node):
             10,
         )
 
+        self.create_subscription(
+            Float64,
+            TEMP_TOPIC,
+            self.temp_callback,
+            10,
+        )
+
+        self.create_subscription(
+            Float64,
+            PRESSURE_TOPIC,
+            self.pressure_callback,
+            10,
+        )
+
         self.get_logger().info("ROS side of Flask API started")
         self.get_logger().info(f"Publishing commands to {COMMAND_TOPIC}")
 
@@ -106,8 +124,9 @@ class ApiRosNode(Node):
         self.cmd_pub.publish(msg)
         self.get_logger().info(f"API sent command: {command}")
 
-    def send_movement_command(self, ros_command: str) -> str:
-        velocity = self.get_velocity()
+    def send_movement_command(self, ros_command: str, velocity: float | None = None) -> str:
+        if velocity is None:
+            velocity = self.get_velocity()
         command = f"{ros_command} {velocity}"
         self.send_command(command)
         return command
@@ -145,6 +164,14 @@ class ApiRosNode(Node):
         with self.sensor_lock:
             self.battery = int(msg.data)
 
+    def temp_callback(self, msg: Float64) -> None:
+        with self.sensor_lock:
+            self.temp = float(msg.data)
+
+    def pressure_callback(self, msg: Float64) -> None:
+        with self.sensor_lock:
+            self.pressure = float(msg.data)
+
 
 app = Flask(__name__)
 ros_node: ApiRosNode | None = None
@@ -164,13 +191,16 @@ def sensors_data():
         depth = ros_node.depth
         front_distance = ros_node.front_distance
         sonar = ros_node.sonar
+        temp = ros_node.temp
+        pressure = ros_node.pressure
 
     return jsonify(
         {
             "ok": True,
             "depth": depth,
             "front_distance": front_distance,
-            "temp": 287,
+            "temp": temp,
+            "pressure": pressure,
             "sonar": sonar,
         }
     )
@@ -233,6 +263,34 @@ def set_speed():
     )
 
 
+def get_request_velocity():
+    speed_val = request.args.get("speed")
+    if speed_val is None:
+        data = request.get_json(silent=True) or {}
+        speed_val = data.get("speed")
+    if speed_val is None:
+        speed_val = request.form.get("speed")
+
+    if speed_val is None:
+        return None, None
+
+    try:
+        speed = float(speed_val)
+    except (TypeError, ValueError):
+        return None, (
+            jsonify({"ok": False, "error": "speed must be a number from 0 to 100"}),
+            400,
+        )
+
+    if speed < 0 or speed > 100 or not math.isfinite(speed):
+        return None, (
+            jsonify({"ok": False, "error": "speed must be between 0 and 100"}),
+            400,
+        )
+
+    return speed, None
+
+
 def command_response(app_command: str, sent_command: str):
     return jsonify(
         {
@@ -247,25 +305,37 @@ def command_response(app_command: str, sent_command: str):
 
 @app.route("/forward", methods=["POST"])
 def forward():
-    sent = ros_node.send_movement_command("FORWARD")
+    velocity, err = get_request_velocity()
+    if err:
+        return err
+    sent = ros_node.send_movement_command("FORWARD", velocity)
     return command_response("forward", sent)
 
 
 @app.route("/backward", methods=["POST"])
 def backward():
-    sent = ros_node.send_movement_command("BACKWARD")
+    velocity, err = get_request_velocity()
+    if err:
+        return err
+    sent = ros_node.send_movement_command("BACKWARD", velocity)
     return command_response("backward", sent)
 
 
 @app.route("/left", methods=["POST"])
 def left():
-    sent = ros_node.send_movement_command("LEFT")
+    velocity, err = get_request_velocity()
+    if err:
+        return err
+    sent = ros_node.send_movement_command("LEFT", velocity)
     return command_response("left", sent)
 
 
 @app.route("/right", methods=["POST"])
 def right():
-    sent = ros_node.send_movement_command("RIGHT")
+    velocity, err = get_request_velocity()
+    if err:
+        return err
+    sent = ros_node.send_movement_command("RIGHT", velocity)
     return command_response("right", sent)
 
 
@@ -483,6 +553,8 @@ def health():
             "front_distance_topic": FRONT_DISTANCE_TOPIC,
             "sonar_topic": SONAR_TOPIC,
             "battery_topic": BATTERY_TOPIC,
+            "temp_topic": TEMP_TOPIC,
+            "pressure_topic": PRESSURE_TOPIC,
             "message_type": "std_msgs/String",
         }
     )

@@ -205,7 +205,8 @@ def handle_sensors():
     json_data = {
         "depth": 0,
         "front_distance": 0,
-        "temp": mock_temperature
+        "temp": mock_temperature,
+        "pressure": 1013.25
     }
     return jsonify(json_data)
 

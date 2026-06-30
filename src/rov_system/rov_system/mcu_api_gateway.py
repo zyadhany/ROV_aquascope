@@ -79,7 +79,15 @@ class McuGateway(Node):
                     msg = Float64()
                     msg.data = float(data["front_distance"])
                     self.front_distance_pub.publish(msg)
-                    
+
+                if "pressure" in data:
+                    try:
+                        msg = Float64()
+                        msg.data = float(data["pressure"])
+                        self.pressure_pub.publish(msg)
+                    except ValueError:
+                        pass
+
                 if "temp" in data:
                     try:
                         msg = Float64()

@@ -396,6 +396,10 @@ class MicrocontrollerSim(Node):
         temp_val = 24.5 + 0.2 * math.sin(self.get_clock().now().nanoseconds / 1e9)
         self.send_serial(f"TEMP {temp_val:.1f}")
 
+        # Calculate and send simulated pressure
+        pressure_val = 101325.0 + 1000.0 * 9.8 * self.latest_depth
+        self.send_serial(f"PRESSURE {pressure_val:.3f}")
+
         if self.latest_sonar is not None:
             self.send_serial(f"SONAR {self.latest_sonar}")
 
