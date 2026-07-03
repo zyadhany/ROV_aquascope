@@ -69,7 +69,9 @@ class BaseBlock:
                 'last_update': self._timestamp(),
             }
 
-        watch_result = self.ros_interface.watch_topic(topic, message_type)
+        qos_val = source.get('qos')
+        qos = str(qos_val).strip() if qos_val is not None else None
+        watch_result = self.ros_interface.watch_topic(topic, message_type, qos=qos)
         topic_info = self.ros_interface.get_topic_info(topic)
         latest = self.ros_interface.get_latest_topic_data(topic)
         latest_data = latest.get('data')

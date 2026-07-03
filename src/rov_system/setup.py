@@ -37,6 +37,8 @@ setup(
             "mcu_gateway = rov_system.mcu_gateway:main",
             "camera_streamer = rov_system.camera_streamer:main",
             "joystick_controller = rov_system.joystick_controller:main",
+            "position_tracker = rov_system.position_tracker:main",
+            "safety_node = rov_system.safety_node:main",
         ],
     },
 )

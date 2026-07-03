@@ -25,11 +25,13 @@ class FakeRosInterface:
         topic: str,
         message_type: str = '',
         latest_message: bool = True,
+        qos: str | None = None,
     ) -> dict[str, object]:
         self.watch_calls.append({
             'topic': topic,
             'message_type': message_type,
             'latest_message': latest_message,
+            'qos': qos,
         })
         return {
             'success': True,

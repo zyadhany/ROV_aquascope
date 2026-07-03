@@ -5,14 +5,15 @@ import math
 import requests
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, DurabilityPolicy
 from sensor_msgs.msg import Imu
-from std_msgs.msg import String, Float64, Bool
+from std_msgs.msg import String, Float64, Bool, Int32
 
 class McuGateway(Node):
     def __init__(self):
         super().__init__("mcu_gateway")
         
-        self.esp_url = "http://10.42.0.42"
+        self.esp_url = "http://192.168.4.1"
         self.max_pwm = 255
         self.req_timeout = 0.2
 
@@ -22,6 +23,13 @@ class McuGateway(Node):
         self.sonar_pub = self.create_publisher(String, "/rov/scanning_sonar/reading", 10)
         self.front_distance_pub = self.create_publisher(Float64, "/rov/front_distance", 10)
         self.temp_pub = self.create_publisher(Float64, "/rov/temperature", 10)
+
+        qos_profile = QoSProfile(
+            depth=10,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL
+        )
+        self.battery_pub = self.create_publisher(Int32, "/rov/battery", qos_profile)
+        self.water_leak_pub = self.create_publisher(Bool, "/rov/water_leak", qos_profile)
 
         self.left_thruster_sub = self.create_subscription(Float64, "/rov/mcu/cmd/left_thruster", self.left_thruster_callback, 10)
         self.right_thruster_sub = self.create_subscription(Float64, "/rov/mcu/cmd/right_thruster", self.right_thruster_callback, 10)
@@ -95,6 +103,19 @@ class McuGateway(Node):
                         self.temp_pub.publish(msg)
                     except ValueError:
                         pass
+
+                if "battery" in data:
+                    try:
+                        msg = Int32()
+                        msg.data = int(data["battery"])
+                        self.battery_pub.publish(msg)
+                    except ValueError:
+                        pass
+
+                if "water_leak" in data:
+                    msg = Bool()
+                    msg.data = bool(data["water_leak"])
+                    self.water_leak_pub.publish(msg)
         except (requests.exceptions.RequestException, json.JSONDecodeError):
             pass
 

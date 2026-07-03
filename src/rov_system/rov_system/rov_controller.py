@@ -139,6 +139,13 @@ class RovController(Node):
                 self.publish_gripper(False)
             elif cmd == "STOP":
                 self.publish_thrusters(0.0, 0.0)
+            elif cmd in ("RETURN_TO_SURFACE", "SURFACE"):
+                self.publish_pump(-1.0)
+            elif cmd in ("EMERGENCY_STOP", "ESTOP"):
+                self.publish_thrusters(0.0, 0.0)
+                self.publish_light(False)
+                self.publish_gripper(False)
+                self.publish_pump(-1.0)
 
             else:
                 self.get_logger().warn(f"Unknown command: {command}")

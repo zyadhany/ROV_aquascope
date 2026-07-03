@@ -10,6 +10,14 @@ from rcl_interfaces.msg import Log
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from rclpy.qos import (
+    DurabilityPolicy,
+    HistoryPolicy,
+    QoSProfile,
+    ReliabilityPolicy,
+    qos_profile_sensor_data,
+    qos_profile_system_default,
+)
 from rclpy.serialization import serialize_message
 from rosidl_runtime_py.convert import message_to_ordereddict
 from rosidl_runtime_py.utilities import get_message
@@ -382,6 +390,7 @@ class RosInterface:
         topic_name: str,
         message_type: str | None = None,
         latest_message: bool = True,
+        qos: str | None = None,
     ) -> dict[str, Any]:
         topic_name = self._normalize_topic_name(topic_name)
         message_type = self._normalize_message_type(message_type)
@@ -466,11 +475,25 @@ class RosInterface:
                     self._latest_messages.pop(topic_name, None)
 
         try:
+            qos_profile = 1
+            if qos is not None:
+                qos_str = str(qos).strip().lower()
+                if qos_str == 'transient_local':
+                    qos_profile = QoSProfile(
+                        durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                        history=HistoryPolicy.KEEP_LAST,
+                        depth=1,
+                    )
+                elif qos_str == 'sensor_data':
+                    qos_profile = qos_profile_sensor_data
+                elif qos_str == 'default':
+                    qos_profile = qos_profile_system_default
+
             subscription = self.node.create_subscription(
                 msg_class,
                 topic_name,
                 callback,
-                1,
+                qos_profile,
             )
         except Exception as exc:
             return {

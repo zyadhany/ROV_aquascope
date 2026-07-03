@@ -15,7 +15,8 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 
 from sensor_msgs.msg import Image
-from std_msgs.msg import String, Float64, Int32
+from rclpy.qos import QoSProfile, DurabilityPolicy
+from std_msgs.msg import String, Float64, Int32, Bool
 
 
 COMMAND_TOPIC = "/rov/controller/cmd"
@@ -27,6 +28,8 @@ SONAR_TOPIC = "/rov/scanning_sonar/reading"
 BATTERY_TOPIC = "/rov/battery"
 TEMP_TOPIC = "/rov/temperature"
 PRESSURE_TOPIC = "/rov/pressure/data"
+WATER_LEAK_TOPIC = "/rov/water_leak"
+ALERT_TOPIC = "/rov/alert"
 
 
 class ApiRosNode(Node):
@@ -52,7 +55,14 @@ class ApiRosNode(Node):
         self.battery = 0
         self.temp = 0.0
         self.pressure = 0.0
+        self.water_leak = False
+        self.alert = False
         self.sensor_lock = threading.Lock()
+
+        qos_profile = QoSProfile(
+            depth=10,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL
+        )
 
         self.create_subscription(
             Image,
@@ -86,6 +96,20 @@ class ApiRosNode(Node):
             Int32,
             BATTERY_TOPIC,
             self.battery_callback,
+            qos_profile,
+        )
+
+        self.create_subscription(
+            Bool,
+            WATER_LEAK_TOPIC,
+            self.water_leak_callback,
+            qos_profile,
+        )
+
+        self.create_subscription(
+            Bool,
+            ALERT_TOPIC,
+            self.alert_callback,
             10,
         )
 
@@ -172,6 +196,14 @@ class ApiRosNode(Node):
         with self.sensor_lock:
             self.pressure = float(msg.data)
 
+    def water_leak_callback(self, msg: Bool) -> None:
+        with self.sensor_lock:
+            self.water_leak = msg.data
+
+    def alert_callback(self, msg: Bool) -> None:
+        with self.sensor_lock:
+            self.alert = msg.data
+
 
 app = Flask(__name__)
 ros_node: ApiRosNode | None = None
@@ -221,12 +253,24 @@ def battery_data():
 @app.route("/leak", methods=["GET"])
 def leak_data():
     with ros_node.sensor_lock:
-        leak = False  # Placeholder for actual leak detection logic
+        leak = ros_node.water_leak
 
     return jsonify(
         {
             "ok": True,
             "leak": leak,
+        }
+    )
+
+@app.route("/alert", methods=["GET"])
+def alert_data():
+    with ros_node.sensor_lock:
+        alert = ros_node.alert
+
+    return jsonify(
+        {
+            "ok": True,
+            "alert": alert,
         }
     )
 

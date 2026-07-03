@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import deque
 import threading
 import time
+from typing import Any
 
 from geometry_msgs.msg import Twist
 import pytest
@@ -29,6 +30,7 @@ class FakeNode:
         self.publisher_info_calls = 0
         self.subscription_info_calls = 0
         self.subscription_callback = None
+        self.create_subscription_calls = []
 
     def get_name(self) -> str:
         return 'dashboard_ros_interface'
@@ -55,9 +57,14 @@ class FakeNode:
         msg_class: object,
         topic_name: str,
         callback: object,
-        qos: int,
+        qos: Any,
     ) -> object:
         self.subscription_callback = callback
+        self.create_subscription_calls.append({
+            'msg_class': msg_class,
+            'topic_name': topic_name,
+            'qos': qos,
+        })
         return object()
 
 
@@ -239,3 +246,60 @@ def test_rosout_callback_routes_structured_entries_to_handler() -> None:
         'function': 'tick',
         'line': 9,
     }]
+
+
+def test_watch_topic_qos_profiles() -> None:
+    from rclpy.qos import QoSProfile, DurabilityPolicy, HistoryPolicy, qos_profile_sensor_data, qos_profile_system_default
+
+    # Case 1: No QoS specified (fallback to depth=1)
+    node = FakeNode()
+    interface = build_interface(node)
+    interface._subscriptions = {}
+    interface._topic_types = {}
+    interface._sample_times = {}
+    interface._sample_sizes = {}
+    res = interface.watch_topic('/test/topic', 'std_msgs/Float64')
+    assert res['success'] is True
+    assert len(node.create_subscription_calls) == 1
+    assert node.create_subscription_calls[0]['qos'] == 1
+
+    # Case 2: transient_local
+    node = FakeNode()
+    interface = build_interface(node)
+    interface._subscriptions = {}
+    interface._topic_types = {}
+    interface._sample_times = {}
+    interface._sample_sizes = {}
+    res = interface.watch_topic('/test/topic', 'std_msgs/Float64', qos='transient_local')
+    assert res['success'] is True
+    assert len(node.create_subscription_calls) == 1
+    qos = node.create_subscription_calls[0]['qos']
+    assert isinstance(qos, QoSProfile)
+    assert qos.durability == DurabilityPolicy.TRANSIENT_LOCAL
+    assert qos.history == HistoryPolicy.KEEP_LAST
+    assert qos.depth == 1
+
+    # Case 3: sensor_data
+    node = FakeNode()
+    interface = build_interface(node)
+    interface._subscriptions = {}
+    interface._topic_types = {}
+    interface._sample_times = {}
+    interface._sample_sizes = {}
+    res = interface.watch_topic('/test/topic', 'std_msgs/Float64', qos='sensor_data')
+    assert res['success'] is True
+    assert len(node.create_subscription_calls) == 1
+    assert node.create_subscription_calls[0]['qos'] == qos_profile_sensor_data
+
+    # Case 4: default
+    node = FakeNode()
+    interface = build_interface(node)
+    interface._subscriptions = {}
+    interface._topic_types = {}
+    interface._sample_times = {}
+    interface._sample_sizes = {}
+    res = interface.watch_topic('/test/topic', 'std_msgs/Float64', qos='default')
+    assert res['success'] is True
+    assert len(node.create_subscription_calls) == 1
+    assert node.create_subscription_calls[0]['qos'] == qos_profile_system_default
+

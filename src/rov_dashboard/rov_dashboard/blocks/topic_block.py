@@ -30,13 +30,20 @@ class TopicBlock(BaseBlock):
                 self._topic_name(),
                 self._message_type(),
                 latest_message=self._monitor_latest_message(),
+                qos=self._qos(),
             )
 
     def _topic_name(self) -> str:
-        return str(self.raw_config.get('ros_topic', self.id)).strip()
+        return str(self.raw_config.get('ros_topic', self.raw_config.get('topic_name', self.id))).strip()
 
     def _message_type(self) -> str:
-        return str(self.raw_config.get('message_type', '')).strip()
+        return str(self.raw_config.get('message_type', self.raw_config.get('msg_type', ''))).strip()
+
+    def _qos(self) -> str | None:
+        qos_val = self.raw_config.get('qos')
+        if qos_val is None:
+            return None
+        return str(qos_val).strip()
 
     def _monitor_latest_message(self) -> bool:
         monitor_config = self._dict_config('monitor')
@@ -50,6 +57,7 @@ class TopicBlock(BaseBlock):
                 topic_name,
                 message_type,
                 latest_message=self._monitor_latest_message(),
+                qos=self._qos(),
             )
 
         topic_info = self.ros_interface.get_topic_info(topic_name)

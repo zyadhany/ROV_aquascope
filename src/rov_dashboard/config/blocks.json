@@ -132,6 +132,18 @@
       }
     },
     {
+      "id": "/nodes/position_tracker",
+      "name": "Position Tracker",
+      "type": "node",
+      "category": "Nodes",
+      "description": "Calculates and tracks the relative X/Y position of the ROV using double integration on IMU linear acceleration data.",
+      "ros_node": "/position_tracker",
+      "logs": {
+        "source": "/position_tracker",
+        "level": "info"
+      }
+    },
+    {
       "id": "/topics/camera/image",
       "name": "Camera Image",
       "type": "topic",
@@ -157,6 +169,7 @@
       "description": "Published compressed camera image stream from the Camera Streamer node.",
       "ros_topic": "/rov/camera/image/compressed",
       "message_type": "sensor_msgs/CompressedImage",
+      "qos": "sensor_data",
       "show": {
         "publishers": true,
         "subscribers": true,
@@ -247,6 +260,22 @@
       "description": "IMU data published by the microcontroller through the MCU Gateway.",
       "ros_topic": "/rov/imu",
       "message_type": "sensor_msgs/Imu",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/position/current",
+      "name": "Current Position",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Relative planar X/Y position calculated by double integration of IMU linear acceleration.",
+      "ros_topic": "/rov/position/current",
+      "message_type": "geometry_msgs/Point",
+      "qos": "transient_local",
       "show": {
         "publishers": true,
         "subscribers": true,
@@ -440,6 +469,77 @@
       "type": "interface",
       "category": "Hardware",
       "description": "Mobile app interface for controlling the ROV."
+    },
+    {
+      "id": "/nodes/mcu_api_gateway",
+      "name": "MCU API Gateway",
+      "type": "node",
+      "category": "Nodes",
+      "description": "HTTP MCU Gateway that communicates with the ESP microcontroller.",
+      "ros_node": "/mcu_gateway",
+      "logs": {
+        "source": "/mcu_gateway",
+        "level": "info"
+      }
+    },
+    {
+      "id": "/nodes/safety_node",
+      "name": "Safety Node",
+      "type": "node",
+      "category": "Nodes",
+      "description": "Monitors sensors and publishes an alert if dangerous conditions are met.",
+      "ros_node": "/safety_node",
+      "logs": {
+        "source": "/safety_node",
+        "level": "info"
+      }
+    },
+    {
+      "id": "/topics/battery",
+      "name": "Battery Level",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Battery percentage from the microcontroller.",
+      "ros_topic": "/rov/battery",
+      "message_type": "std_msgs/Int32",
+      "qos": "transient_local",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/water_leak",
+      "name": "Water Leak",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Water leak detection status.",
+      "ros_topic": "/rov/water_leak",
+      "message_type": "std_msgs/Bool",
+      "qos": "transient_local",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
+    },
+    {
+      "id": "/topics/alert",
+      "name": "Safety Alert",
+      "type": "topic",
+      "category": "Topics",
+      "description": "Alert published by the safety node.",
+      "ros_topic": "/rov/alert",
+      "message_type": "std_msgs/Bool",
+      "show": {
+        "publishers": true,
+        "subscribers": true,
+        "latest_message": true,
+        "frequency": true
+      }
     }
   ],
   "connections": [
@@ -666,6 +766,66 @@
     {
       "from": "/topics/camera/image/compressed",
       "to": "/nodes/gateway_server",
+      "label": "subscribed"
+    },
+    {
+      "from": "/topics/imu",
+      "to": "/nodes/position_tracker",
+      "label": "subscribed"
+    },
+    {
+      "from": "/nodes/position_tracker",
+      "to": "/topics/position/current",
+      "label": "publishes"
+    },
+    {
+      "from": "/nodes/mcu_api_gateway",
+      "to": "/nodes/mcu_gateway",
+      "label": "API"
+    },
+    {
+      "from": "/nodes/mcu_api_gateway",
+      "to": "/topics/battery",
+      "label": "publishes"
+    },
+    {
+      "from": "/nodes/mcu_api_gateway",
+      "to": "/topics/water_leak",
+      "label": "publishes"
+    },
+    {
+      "from": "/nodes/safety_node",
+      "to": "/topics/alert",
+      "label": "publishes"
+    },
+    {
+      "from": "/topics/battery",
+      "to": "/nodes/gateway_server",
+      "label": "subscribed"
+    },
+    {
+      "from": "/topics/water_leak",
+      "to": "/nodes/gateway_server",
+      "label": "subscribed"
+    },
+    {
+      "from": "/topics/alert",
+      "to": "/nodes/gateway_server",
+      "label": "subscribed"
+    },
+    {
+      "from": "/topics/battery",
+      "to": "/nodes/safety_node",
+      "label": "subscribed"
+    },
+    {
+      "from": "/topics/water_leak",
+      "to": "/nodes/safety_node",
+      "label": "subscribed"
+    },
+    {
+      "from": "/topics/front_distance",
+      "to": "/nodes/safety_node",
       "label": "subscribed"
     }
   ]
